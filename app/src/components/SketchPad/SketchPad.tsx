@@ -99,11 +99,45 @@ function RoomShape({ node, isSelected, result }: { node: ZoneNode; isSelected: b
   );
 }
 
+const SCALE_MIN = 0.2;
+const SCALE_MAX = 3.0;
+const SCALE_STEP = 1.1;
+
 export default function SketchPad() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<any>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const { nodes, links, selectedNodeId, toolMode, addNode, addLink, result, selectNode } = useAppStore();
   const [linkStart, setLinkStart] = useState<number | null>(null);
+  const [stageScale, setStageScale] = useState(1);
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+
+  const handleWheel = useCallback((e: KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+    const oldScale = stage.scaleX();
+    const pointer = stage.getPointerPosition()!;
+    const mousePointTo = {
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale,
+    };
+    const direction = e.evt.deltaY > 0 ? -1 : 1;
+    const newScale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, direction > 0 ? oldScale * SCALE_STEP : oldScale / SCALE_STEP));
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale,
+    };
+    setStageScale(newScale);
+    setStagePos(newPos);
+  }, []);
+
+  const getCanvasPoint = useCallback((pointerPos: { x: number; y: number }) => {
+    return {
+      x: (pointerPos.x - stagePos.x) / stageScale,
+      y: (pointerPos.y - stagePos.y) / stageScale,
+    };
+  }, [stageScale, stagePos]);
 
   useEffect(() => {
     const updateSize = () => {
@@ -118,7 +152,8 @@ export default function SketchPad() {
 
   const handleStageClick = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (e.target === e.target.getStage()) {
-      const pos = e.target.getStage()!.getPointerPosition()!;
+      const pointerPos = e.target.getStage()!.getPointerPosition()!;
+      const pos = getCanvasPoint(pointerPos);
 
       if (toolMode === 'addRoom') {
         addNode({
@@ -139,7 +174,7 @@ export default function SketchPad() {
         selectNode(null);
       }
     }
-  }, [toolMode, addNode, selectNode]);
+  }, [toolMode, addNode, selectNode, getCanvasPoint]);
 
   const handleNodeClickForLink = useCallback((nodeId: number) => {
     if (toolMode !== 'addLink') return;
@@ -175,7 +210,28 @@ export default function SketchPad() {
         </div>
       )}
 
-      <Stage width={size.width} height={size.height} onClick={handleStageClick}>
+      {/* Zoom indicator */}
+      <div className="absolute bottom-2 right-2 z-10 px-2 py-0.5 bg-white/80 border border-slate-200 rounded text-[10px] text-slate-500 select-none">
+        {Math.round(stageScale * 100)}%
+      </div>
+
+      <Stage
+        ref={stageRef}
+        width={size.width}
+        height={size.height}
+        scaleX={stageScale}
+        scaleY={stageScale}
+        x={stagePos.x}
+        y={stagePos.y}
+        draggable={toolMode === 'select'}
+        onWheel={handleWheel}
+        onDragEnd={(e: KonvaEventObject<DragEvent>) => {
+          if (e.target === e.target.getStage()) {
+            setStagePos({ x: e.target.x(), y: e.target.y() });
+          }
+        }}
+        onClick={handleStageClick}
+      >
         <Layer>
           <GridLines width={size.width} height={size.height} />
         </Layer>

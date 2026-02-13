@@ -1,7 +1,8 @@
 import { create } from 'zustand';
+import { temporal } from 'zundo';
 import type { AppState, ZoneNode, AirflowLink, TopologyJson, Species, Source, Schedule, TransientResult } from '../types';
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>()(temporal((set, get) => ({
   // Model data
   nodes: [],
   links: [],
@@ -218,4 +219,4 @@ export const useAppStore = create<AppState>((set, get) => ({
     error: null,
     nextId: 1,
   }),
-}));
+}), { limit: 50 }));

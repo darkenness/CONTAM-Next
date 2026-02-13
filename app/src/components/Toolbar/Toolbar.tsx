@@ -1,6 +1,6 @@
 import { useAppStore } from '../../store/useAppStore';
 import type { ToolMode } from '../../types';
-import { MousePointer2, Square, Cloud, Link2, Play, Trash2, Save, FolderOpen } from 'lucide-react';
+import { MousePointer2, Square, Cloud, Link2, Play, Trash2, Save, FolderOpen, Undo2, Redo2 } from 'lucide-react';
 import { useRef } from 'react';
 
 const tools: { mode: ToolMode; icon: React.ReactNode; label: string; tip: string }[] = [
@@ -145,6 +145,15 @@ export default function Toolbar() {
       >
         <Play size={14} fill="currentColor" />
         {isRunning ? '计算中...' : (isTransient ? '瞬态仿真' : '稳态求解')}
+      </button>
+
+      {/* Undo/Redo */}
+      <div className="w-px h-6 bg-slate-200 mx-1" />
+      <button onClick={() => useAppStore.temporal.getState().undo()} title="撤销 (Ctrl+Z)" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+        <Undo2 size={15} />
+      </button>
+      <button onClick={() => useAppStore.temporal.getState().redo()} title="重做 (Ctrl+Shift+Z)" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+        <Redo2 size={15} />
       </button>
 
       <div className="flex-1" />

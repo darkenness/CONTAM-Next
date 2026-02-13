@@ -32,6 +32,18 @@ export default function StatusBar() {
         return;
       }
 
+      // Undo/Redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        useAppStore.temporal.getState().undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        useAppStore.temporal.getState().redo();
+        return;
+      }
+
       switch (e.key) {
         case '1': setToolMode('select'); break;
         case '2': setToolMode('addRoom'); break;

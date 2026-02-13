@@ -26,7 +26,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const id = state.nextId;
     const node: ZoneNode = {
       id,
-      name: partial.name || `Room ${id}`,
+      name: partial.name || `房间 ${id}`,
       type: partial.type || 'normal',
       temperature: partial.temperature ?? 293.15,
       elevation: partial.elevation ?? 0.0,

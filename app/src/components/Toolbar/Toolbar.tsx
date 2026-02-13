@@ -3,10 +3,10 @@ import type { ToolMode } from '../../types';
 import { MousePointer2, Square, Cloud, Link2, Play, Trash2, Save, FolderOpen } from 'lucide-react';
 
 const tools: { mode: ToolMode; icon: React.ReactNode; label: string; tip: string }[] = [
-  { mode: 'select', icon: <MousePointer2 size={18} />, label: 'Select', tip: 'Select & move elements' },
-  { mode: 'addRoom', icon: <Square size={18} />, label: 'Room', tip: 'Click canvas to add a room' },
-  { mode: 'addAmbient', icon: <Cloud size={18} />, label: 'Ambient', tip: 'Add outdoor environment node' },
-  { mode: 'addLink', icon: <Link2 size={18} />, label: 'Link', tip: 'Click two nodes to connect them' },
+  { mode: 'select', icon: <MousePointer2 size={18} />, label: '选择', tip: '选择并移动元素' },
+  { mode: 'addRoom', icon: <Square size={18} />, label: '房间', tip: '点击画布添加房间' },
+  { mode: 'addAmbient', icon: <Cloud size={18} />, label: '室外', tip: '添加室外环境节点' },
+  { mode: 'addLink', icon: <Link2 size={18} />, label: '连接', tip: '点击两个节点创建气流路径' },
 ];
 
 export default function Toolbar() {
@@ -98,19 +98,19 @@ export default function Toolbar() {
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
         <Play size={14} fill="currentColor" />
-        {isRunning ? 'Running...' : 'Run'}
+        {isRunning ? '计算中...' : '运行'}
       </button>
 
       <div className="flex-1" />
 
       {/* File operations */}
-      <button onClick={handleSave} title="Save model" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+      <button onClick={handleSave} title="保存模型" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
         <Save size={16} />
       </button>
-      <button title="Open model" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+      <button title="打开模型" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
         <FolderOpen size={16} />
       </button>
-      <button onClick={clearAll} title="Clear all" className="p-1.5 rounded-md text-slate-500 hover:bg-red-50 hover:text-red-600">
+      <button onClick={clearAll} title="清空全部" className="p-1.5 rounded-md text-slate-500 hover:bg-red-50 hover:text-red-600">
         <Trash2 size={16} />
       </button>
     </header>

@@ -129,7 +129,7 @@ export default function SketchPad() {
       } else if (toolMode === 'addAmbient') {
         addNode({
           type: 'ambient',
-          name: 'Outdoor',
+          name: '室外',
           temperature: 283.15,
           volume: 0,
           x: Math.round(pos.x / GRID_SIZE) * GRID_SIZE - 60,
@@ -169,9 +169,9 @@ export default function SketchPad() {
       {/* Status bar */}
       {toolMode !== 'select' && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-full shadow-lg">
-          {toolMode === 'addRoom' && 'Click to place a room'}
-          {toolMode === 'addAmbient' && 'Click to place outdoor node'}
-          {toolMode === 'addLink' && (linkStart === null ? 'Click first node' : 'Click second node to connect')}
+          {toolMode === 'addRoom' && '点击放置房间'}
+          {toolMode === 'addAmbient' && '点击放置室外节点'}
+          {toolMode === 'addLink' && (linkStart === null ? '点击第一个节点' : '点击第二个节点以创建连接')}
         </div>
       )}
 

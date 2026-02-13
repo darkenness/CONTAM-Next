@@ -1,0 +1,27 @@
+# Build
+engine/build/
+engine/out/
+engine/cmake-build-*/
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user
+*.sln
+*.vcxproj*
+.idea/
+
+# Dependencies (fetched by CMake)
+engine/_deps/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Tauri / Node
+app/node_modules/
+app/dist/
+app/src-tauri/target/
+app/.env
+*.log

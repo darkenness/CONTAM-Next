@@ -1,0 +1,81 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "CONTAM-Next Topology Input",
+    "description": "JSON schema for CONTAM-Next building topology and airflow network definition",
+    "type": "object",
+    "properties": {
+        "description": {
+            "type": "string",
+            "description": "Human-readable description of the model"
+        },
+        "ambient": {
+            "type": "object",
+            "description": "Outdoor/ambient boundary conditions",
+            "properties": {
+                "temperature": { "type": "number", "description": "Ambient temperature (K)" },
+                "pressure": { "type": "number", "description": "Ambient gauge pressure (Pa), usually 0" },
+                "windSpeed": { "type": "number", "description": "Wind speed (m/s)" },
+                "windDirection": { "type": "number", "description": "Wind direction (degrees from north)" }
+            }
+        },
+        "flowElements": {
+            "type": "object",
+            "description": "Named flow element definitions (reusable templates)",
+            "additionalProperties": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["PowerLawOrifice", "LargeOpening", "Fan", "Duct", "Damper"]
+                    },
+                    "C": { "type": "number", "description": "Flow coefficient (PowerLawOrifice)" },
+                    "n": { "type": "number", "description": "Flow exponent 0.5-1.0 (PowerLawOrifice)" }
+                }
+            }
+        },
+        "nodes": {
+            "type": "array",
+            "description": "Zone/node definitions",
+            "items": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": { "type": "integer", "description": "Unique node ID" },
+                    "name": { "type": "string" },
+                    "type": {
+                        "type": "string",
+                        "enum": ["normal", "ambient", "phantom", "cfd"],
+                        "default": "normal"
+                    },
+                    "temperature": { "type": "number", "description": "Zone temperature (K)" },
+                    "elevation": { "type": "number", "description": "Base elevation (m)" },
+                    "volume": { "type": "number", "description": "Zone volume (m³)" },
+                    "pressure": { "type": "number", "description": "Initial/fixed gauge pressure (Pa)" }
+                }
+            }
+        },
+        "links": {
+            "type": "array",
+            "description": "Airflow path definitions",
+            "items": {
+                "type": "object",
+                "required": ["id", "from", "to"],
+                "properties": {
+                    "id": { "type": "integer", "description": "Unique link ID" },
+                    "from": { "type": "integer", "description": "Source node ID" },
+                    "to": { "type": "integer", "description": "Destination node ID" },
+                    "elevation": { "type": "number", "description": "Path centerline elevation (m)" },
+                    "element": {
+                        "description": "Flow element: string reference to flowElements, or inline object",
+                        "oneOf": [
+                            { "type": "string" },
+                            { "type": "object", "required": ["type"] }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "required": ["nodes", "links"]
+}

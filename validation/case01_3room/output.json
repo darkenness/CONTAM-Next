@@ -1,0 +1,56 @@
+{
+  "links": [
+    {
+      "from": 0,
+      "id": 1,
+      "massFlow": 9.437007439074865e-06,
+      "to": 1,
+      "volumeFlow_m3s": 7.570060787125114e-06
+    },
+    {
+      "from": 1,
+      "id": 2,
+      "massFlow": 0.0,
+      "to": 2,
+      "volumeFlow_m3s": 0.0
+    },
+    {
+      "from": 2,
+      "id": 3,
+      "massFlow": -9.437007439074865e-06,
+      "to": 0,
+      "volumeFlow_m3s": -7.837460842475708e-06
+    }
+  ],
+  "nodes": [
+    {
+      "density": 1.2466224122169516,
+      "elevation": 0.0,
+      "id": 0,
+      "name": "Outdoor",
+      "pressure": 0.0,
+      "temperature": 283.15
+    },
+    {
+      "density": 1.2040898996177811,
+      "elevation": 0.0,
+      "id": 1,
+      "name": "LivingRoom",
+      "pressure": -0.626338588621713,
+      "temperature": 293.15
+    },
+    {
+      "density": 1.2040898996177811,
+      "elevation": 0.0,
+      "id": 2,
+      "name": "Bedroom",
+      "pressure": -0.626338588621713,
+      "temperature": 293.15
+    }
+  ],
+  "solver": {
+    "converged": true,
+    "iterations": 12,
+    "maxResidual": 9.437007439074865e-06
+  }
+}

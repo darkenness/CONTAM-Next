@@ -133,5 +133,6 @@ export interface AppState {
   setIsRunning: (running: boolean) => void;
   setError: (error: string | null) => void;
   exportTopology: () => TopologyJson;
+  loadFromJson: (json: TopologyJson) => void;
   clearAll: () => void;
 }

@@ -114,6 +114,60 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
   },
 
+  loadFromJson: (json: TopologyJson) => set(() => {
+    const SPACING_X = 180;
+    const SPACING_Y = 120;
+    const START_X = 80;
+    const START_Y = 80;
+
+    const nodes: ZoneNode[] = json.nodes.map((n, i) => ({
+      id: n.id,
+      name: n.name,
+      type: (n.type as ZoneNode['type']) || 'normal',
+      temperature: n.temperature ?? 293.15,
+      elevation: n.elevation ?? 0,
+      volume: n.volume ?? 50,
+      pressure: n.pressure ?? 0,
+      x: START_X + (i % 4) * SPACING_X,
+      y: START_Y + Math.floor(i / 4) * SPACING_Y,
+      width: 120,
+      height: 80,
+    }));
+
+    const links: AirflowLink[] = json.links.map((l) => {
+      const fromNode = nodes.find((n) => n.id === l.from);
+      const toNode = nodes.find((n) => n.id === l.to);
+      const elem = typeof l.element === 'string'
+        ? (json.flowElements?.[l.element] ?? { type: 'PowerLawOrifice' as const, C: 0.001, n: 0.65 })
+        : (l.element ?? { type: 'PowerLawOrifice' as const, C: 0.001, n: 0.65 });
+      return {
+        id: l.id,
+        from: l.from,
+        to: l.to,
+        elevation: l.elevation ?? 1.5,
+        element: elem,
+        x: fromNode && toNode ? (fromNode.x + toNode.x) / 2 : 0,
+        y: fromNode && toNode ? (fromNode.y + toNode.y) / 2 : 0,
+      };
+    });
+
+    const maxId = Math.max(0, ...nodes.map((n) => n.id), ...links.map((l) => l.id));
+
+    return {
+      nodes,
+      links,
+      ambientTemperature: json.ambient?.temperature ?? 283.15,
+      ambientPressure: json.ambient?.pressure ?? 0,
+      windSpeed: json.ambient?.windSpeed ?? 0,
+      windDirection: json.ambient?.windDirection ?? 0,
+      selectedNodeId: null,
+      selectedLinkId: null,
+      result: null,
+      error: null,
+      nextId: maxId + 1,
+    };
+  }),
+
   clearAll: () => set({
     nodes: [],
     links: [],

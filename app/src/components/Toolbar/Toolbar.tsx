@@ -1,6 +1,7 @@
 import { useAppStore } from '../../store/useAppStore';
 import type { ToolMode } from '../../types';
 import { MousePointer2, Square, Cloud, Link2, Play, Trash2, Save, FolderOpen } from 'lucide-react';
+import { useRef } from 'react';
 
 const tools: { mode: ToolMode; icon: React.ReactNode; label: string; tip: string }[] = [
   { mode: 'select', icon: <MousePointer2 size={18} />, label: '选择', tip: '选择并移动元素' },
@@ -10,7 +11,8 @@ const tools: { mode: ToolMode; icon: React.ReactNode; label: string; tip: string
 ];
 
 export default function Toolbar() {
-  const { toolMode, setToolMode, isRunning, clearAll, exportTopology, setResult, setIsRunning, setError } = useAppStore();
+  const { toolMode, setToolMode, isRunning, clearAll, exportTopology, setResult, setIsRunning, setError, loadFromJson } = useAppStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRun = async () => {
     setIsRunning(true);
@@ -50,6 +52,26 @@ export default function Toolbar() {
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const handleOpen = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const json = JSON.parse(ev.target?.result as string);
+        loadFromJson(json);
+      } catch (err) {
+        setError(`文件解析失败: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const handleSave = () => {
@@ -107,7 +129,8 @@ export default function Toolbar() {
       <button onClick={handleSave} title="保存模型" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
         <Save size={16} />
       </button>
-      <button title="打开模型" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+      <input ref={fileInputRef} type="file" accept=".json,.contam.json" onChange={handleFileChange} className="hidden" />
+      <button onClick={handleOpen} title="打开模型" className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-700">
         <FolderOpen size={16} />
       </button>
       <button onClick={clearAll} title="清空全部" className="p-1.5 rounded-md text-slate-500 hover:bg-red-50 hover:text-red-600">

@@ -2,6 +2,7 @@ import Toolbar from './components/Toolbar/Toolbar';
 import SketchPad from './components/SketchPad/SketchPad';
 import PropertyPanel from './components/PropertyPanel/PropertyPanel';
 import ResultsView from './components/ResultsView/ResultsView';
+import StatusBar from './components/StatusBar/StatusBar';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <PropertyPanel />
       </div>
       <ResultsView />
+      <StatusBar />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useAppStore } from '../../store/useAppStore';
+import type { FlowElementType, FlowElementDef } from '../../types';
 import { Trash2, Box, Cloud, Link2 } from 'lucide-react';
 import ContaminantPanel from '../ContaminantPanel/ContaminantPanel';
 
@@ -105,12 +106,20 @@ function LinkProperties() {
           <span className="text-[10px] font-semibold text-slate-500 tracking-wider">类型</span>
           <select
             value={link.element.type}
-            onChange={(e) => updateLink(link.id, {
-              element: { ...link.element, type: e.target.value as 'PowerLawOrifice' }
-            })}
+            onChange={(e) => {
+              const newType = e.target.value as FlowElementType;
+              const defaults: Record<string, FlowElementDef> = {
+                PowerLawOrifice: { type: 'PowerLawOrifice', C: 0.001, n: 0.65 },
+                TwoWayFlow: { type: 'TwoWayFlow', Cd: 0.65, area: 0.5 },
+                Fan: { type: 'Fan', maxFlow: 0.05, shutoffPressure: 200 },
+              };
+              updateLink(link.id, { element: defaults[newType] ?? { type: newType } });
+            }}
             className="px-2 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
           >
             <option value="PowerLawOrifice">幂律孔口模型</option>
+            <option value="TwoWayFlow">大开口 (双向流)</option>
+            <option value="Fan">风扇 / 风机</option>
           </select>
         </label>
 
@@ -126,6 +135,40 @@ function LinkProperties() {
               label="流动指数 (n)" value={link.element.n ?? 0.65} type="number" step="0.01"
               onChange={(v) => updateLink(link.id, {
                 element: { ...link.element, n: Math.max(0.5, Math.min(1.0, parseFloat(v) || 0.65)) }
+              })}
+            />
+          </>
+        )}
+
+        {link.element.type === 'TwoWayFlow' && (
+          <>
+            <InputField
+              label="流量系数 (Cd)" value={link.element.Cd ?? 0.65} type="number" step="0.01"
+              onChange={(v) => updateLink(link.id, {
+                element: { ...link.element, Cd: Math.max(0.01, parseFloat(v) || 0.65) }
+              })}
+            />
+            <InputField
+              label="开口面积" value={link.element.area ?? 0.5} unit="m²" type="number" step="0.01"
+              onChange={(v) => updateLink(link.id, {
+                element: { ...link.element, area: Math.max(0.001, parseFloat(v) || 0.5) }
+              })}
+            />
+          </>
+        )}
+
+        {link.element.type === 'Fan' && (
+          <>
+            <InputField
+              label="最大风量" value={link.element.maxFlow ?? 0.05} unit="m³/s" type="number" step="0.001"
+              onChange={(v) => updateLink(link.id, {
+                element: { ...link.element, maxFlow: Math.max(0.001, parseFloat(v) || 0.05) }
+              })}
+            />
+            <InputField
+              label="全压截止" value={link.element.shutoffPressure ?? 200} unit="Pa" type="number" step="10"
+              onChange={(v) => updateLink(link.id, {
+                element: { ...link.element, shutoffPressure: Math.max(1, parseFloat(v) || 200) }
               })}
             />
           </>

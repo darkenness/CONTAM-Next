@@ -1,5 +1,7 @@
 #include "io/JsonReader.h"
 #include "elements/PowerLawOrifice.h"
+#include "elements/Fan.h"
+#include "elements/TwoWayFlow.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <stdexcept>
@@ -121,8 +123,15 @@ Network JsonReader::readFromString(const std::string& jsonStr) {
                     double C = elemDef["C"].get<double>();
                     double n = elemDef["n"].get<double>();
                     link.setFlowElement(std::make_unique<PowerLawOrifice>(C, n));
+                } else if (elemType == "Fan") {
+                    double maxFlow = elemDef["maxFlow"].get<double>();
+                    double shutoffPressure = elemDef["shutoffPressure"].get<double>();
+                    link.setFlowElement(std::make_unique<Fan>(maxFlow, shutoffPressure));
+                } else if (elemType == "TwoWayFlow") {
+                    double Cd = elemDef["Cd"].get<double>();
+                    double area = elemDef["area"].get<double>();
+                    link.setFlowElement(std::make_unique<TwoWayFlow>(Cd, area));
                 }
-                // Future: add more element types here
             }
 
             network.addLink(std::move(link));

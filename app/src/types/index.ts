@@ -17,12 +17,16 @@ export interface ZoneNode {
 }
 
 // ── Flow Element ─────────────────────────────────────────────────────
-export type FlowElementType = 'PowerLawOrifice' | 'LargeOpening' | 'Fan' | 'Duct' | 'Damper';
+export type FlowElementType = 'PowerLawOrifice' | 'TwoWayFlow' | 'Fan' | 'Duct' | 'Damper';
 
 export interface FlowElementDef {
   type: FlowElementType;
-  C?: number;   // flow coefficient
-  n?: number;   // flow exponent
+  C?: number;            // flow coefficient (PowerLawOrifice)
+  n?: number;            // flow exponent (PowerLawOrifice)
+  Cd?: number;           // discharge coefficient (TwoWayFlow)
+  area?: number;         // opening area m² (TwoWayFlow)
+  maxFlow?: number;      // max volumetric flow m³/s (Fan)
+  shutoffPressure?: number; // shutoff pressure Pa (Fan)
 }
 
 // ── Link (Airflow Path) ──────────────────────────────────────────────

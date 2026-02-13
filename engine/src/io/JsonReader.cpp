@@ -132,4 +132,78 @@ Network JsonReader::readFromString(const std::string& jsonStr) {
     return network;
 }
 
+ModelInput JsonReader::readModelFromFile(const std::string& filepath) {
+    std::ifstream ifs(filepath);
+    if (!ifs.is_open()) {
+        throw std::runtime_error("Cannot open file: " + filepath);
+    }
+    json j;
+    ifs >> j;
+    return readModelFromString(j.dump());
+}
+
+ModelInput JsonReader::readModelFromString(const std::string& jsonStr) {
+    ModelInput model;
+    json j = json::parse(jsonStr);
+
+    // Parse network (reuse existing logic via readFromString)
+    model.network = readFromString(jsonStr);
+
+    // Parse species
+    if (j.contains("species")) {
+        for (auto& js : j["species"]) {
+            Species sp;
+            sp.id = js["id"].get<int>();
+            sp.name = js.value("name", "Species_" + std::to_string(sp.id));
+            sp.molarMass = js.value("molarMass", 0.029);
+            sp.decayRate = js.value("decayRate", 0.0);
+            sp.outdoorConc = js.value("outdoorConcentration", 0.0);
+            model.species.push_back(sp);
+        }
+    }
+
+    // Parse sources
+    if (j.contains("sources")) {
+        for (auto& jsrc : j["sources"]) {
+            Source src;
+            src.zoneId = jsrc["zoneId"].get<int>();
+            src.speciesId = jsrc["speciesId"].get<int>();
+            src.generationRate = jsrc.value("generationRate", 0.0);
+            src.removalRate = jsrc.value("removalRate", 0.0);
+            src.scheduleId = jsrc.value("scheduleId", -1);
+            model.sources.push_back(src);
+        }
+    }
+
+    // Parse schedules
+    if (j.contains("schedules")) {
+        for (auto& jsch : j["schedules"]) {
+            int id = jsch["id"].get<int>();
+            Schedule sch(id, jsch.value("name", "Schedule_" + std::to_string(id)));
+            if (jsch.contains("points")) {
+                for (auto& jp : jsch["points"]) {
+                    sch.addPoint(jp["time"].get<double>(), jp["value"].get<double>());
+                }
+            }
+            model.schedules[id] = sch;
+        }
+    }
+
+    // Parse transient config
+    if (j.contains("transient")) {
+        model.hasTransient = true;
+        auto& jt = j["transient"];
+        model.transientConfig.startTime = jt.value("startTime", 0.0);
+        model.transientConfig.endTime = jt.value("endTime", 3600.0);
+        model.transientConfig.timeStep = jt.value("timeStep", 60.0);
+        model.transientConfig.outputInterval = jt.value("outputInterval", 60.0);
+        std::string method = jt.value("airflowMethod", "trustRegion");
+        if (method == "subRelaxation") {
+            model.transientConfig.airflowMethod = SolverMethod::SubRelaxation;
+        }
+    }
+
+    return model;
+}
+
 } // namespace contam

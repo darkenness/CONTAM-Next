@@ -1,19 +1,21 @@
 #include "core/Network.h"
 #include "core/Solver.h"
+#include "core/TransientSimulation.h"
 #include "io/JsonReader.h"
 #include "io/JsonWriter.h"
 #include <iostream>
 #include <string>
 
 void printUsage(const char* progName) {
-    std::cout << "CONTAM-Next Engine v0.1.0\n"
+    std::cout << "CONTAM-Next Engine v0.2.0\n"
               << "Usage: " << progName << " -i <input.json> -o <output.json> [options]\n"
               << "\nOptions:\n"
-              << "  -i <file>    Input topology JSON file (required)\n"
+              << "  -i <file>    Input JSON file (required)\n"
               << "  -o <file>    Output results JSON file (required)\n"
               << "  -m <method>  Solver method: 'sur' or 'tr' (default: tr)\n"
               << "  -v           Verbose output\n"
-              << "  -h           Show this help\n";
+              << "  -h           Show this help\n"
+              << "\nTransient mode is auto-detected when input contains 'species' and/or 'transient' sections.\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -22,7 +24,6 @@ int main(int argc, char* argv[]) {
     contam::SolverMethod method = contam::SolverMethod::TrustRegion;
     bool verbose = false;
 
-    // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "-i" && i + 1 < argc) {
@@ -51,37 +52,82 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        // Read network
         if (verbose) std::cout << "Reading input: " << inputFile << std::endl;
-        auto network = contam::JsonReader::readFromFile(inputFile);
+        auto model = contam::JsonReader::readModelFromFile(inputFile);
 
         if (verbose) {
-            std::cout << "Network: " << network.getNodeCount() << " nodes, "
-                      << network.getLinkCount() << " links\n"
-                      << "Unknown pressures: " << network.getUnknownCount() << std::endl;
+            std::cout << "Network: " << model.network.getNodeCount() << " nodes, "
+                      << model.network.getLinkCount() << " links\n"
+                      << "Unknown pressures: " << model.network.getUnknownCount() << "\n";
+            if (!model.species.empty()) {
+                std::cout << "Species: " << model.species.size() << "\n";
+                std::cout << "Sources: " << model.sources.size() << "\n";
+            }
         }
 
-        // Solve
-        contam::Solver solver(method);
-        if (verbose) {
-            std::cout << "Solving with "
-                      << (method == contam::SolverMethod::TrustRegion ? "Trust Region" : "Sub-Relaxation")
-                      << " method..." << std::endl;
+        if (model.hasTransient || !model.species.empty()) {
+            // ── Transient simulation ──
+            if (!model.hasTransient) {
+                model.transientConfig.endTime = 3600.0;
+                model.transientConfig.timeStep = 60.0;
+                model.transientConfig.outputInterval = 60.0;
+            }
+            model.transientConfig.airflowMethod = method;
+
+            if (verbose) {
+                std::cout << "Running transient simulation: "
+                          << model.transientConfig.startTime << "s to "
+                          << model.transientConfig.endTime << "s (dt="
+                          << model.transientConfig.timeStep << "s)..." << std::endl;
+            }
+
+            contam::TransientSimulation sim;
+            sim.setConfig(model.transientConfig);
+            sim.setSpecies(model.species);
+            sim.setSources(model.sources);
+            sim.setSchedules(model.schedules);
+
+            if (verbose) {
+                sim.setProgressCallback([](double t, double end) {
+                    std::cout << "\r  t=" << t << "/" << end << "s" << std::flush;
+                    return true;
+                });
+            }
+
+            auto result = sim.run(model.network);
+
+            if (verbose) {
+                std::cout << "\n" << (result.completed ? "Completed" : "Incomplete")
+                          << " (" << result.history.size() << " output steps)" << std::endl;
+            }
+
+            contam::JsonWriter::writeTransientToFile(outputFile, model.network, result, model.species);
+            if (verbose) std::cout << "Results written to: " << outputFile << std::endl;
+
+            return result.completed ? 0 : 2;
+
+        } else {
+            // ── Steady-state solve ──
+            contam::Solver solver(method);
+            if (verbose) {
+                std::cout << "Solving steady-state with "
+                          << (method == contam::SolverMethod::TrustRegion ? "Trust Region" : "Sub-Relaxation")
+                          << " method..." << std::endl;
+            }
+
+            auto result = solver.solve(model.network);
+
+            if (verbose) {
+                std::cout << (result.converged ? "Converged" : "FAILED to converge")
+                          << " in " << result.iterations << " iterations"
+                          << " (max residual: " << result.maxResidual << " kg/s)" << std::endl;
+            }
+
+            contam::JsonWriter::writeToFile(outputFile, model.network, result);
+            if (verbose) std::cout << "Results written to: " << outputFile << std::endl;
+
+            return result.converged ? 0 : 2;
         }
-
-        auto result = solver.solve(network);
-
-        if (verbose) {
-            std::cout << (result.converged ? "Converged" : "FAILED to converge")
-                      << " in " << result.iterations << " iterations"
-                      << " (max residual: " << result.maxResidual << " kg/s)" << std::endl;
-        }
-
-        // Write results
-        contam::JsonWriter::writeToFile(outputFile, network, result);
-        if (verbose) std::cout << "Results written to: " << outputFile << std::endl;
-
-        return result.converged ? 0 : 2;
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

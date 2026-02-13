@@ -77,4 +77,5 @@ contam-next/
 - ✅ Phase 3: Transient contaminant transport (34/34 tests, ECharts visualization)
 - ✅ Phase 4: Flow element library — Fan, TwoWayFlow, Duct (64/64 tests)
 - ✅ Phase 5: Damper + full element UI + CSV export (75/75 tests, 4 validation cases)
-- ⬜ Phase 6: Python API + release
+- ✅ Phase 6: ModelSummary + validation warnings + StatusBar enhancements
+- ✅ Phase 7: Python API via pybind11 (pycontam module, 5/5 tests)

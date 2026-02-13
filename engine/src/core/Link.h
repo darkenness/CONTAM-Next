@@ -11,6 +11,14 @@ public:
     Link() = default;
     Link(int id, int nodeFrom, int nodeTo, double elevation);
 
+    // Copy (clones FlowElement)
+    Link(const Link& other);
+    Link& operator=(const Link& other);
+
+    // Move
+    Link(Link&&) = default;
+    Link& operator=(Link&&) = default;
+
     int getId() const { return id_; }
     int getNodeFrom() const { return nodeFrom_; }
     int getNodeTo() const { return nodeTo_; }

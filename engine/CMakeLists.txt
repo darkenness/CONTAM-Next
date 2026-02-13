@@ -35,7 +35,15 @@ FetchContent_Declare(
 # Prevent GTest from overriding compiler/linker settings on Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(eigen json googletest)
+# pybind11 (Python bindings)
+FetchContent_Declare(
+    pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11.git
+    GIT_TAG        v2.11.1
+    GIT_SHALLOW    TRUE
+)
+
+FetchContent_MakeAvailable(eigen json googletest pybind11)
 
 # ── Engine Library ─────────────────────────────────────────────────────
 set(ENGINE_SOURCES
@@ -89,3 +97,7 @@ target_link_libraries(contam_tests PRIVATE
 
 include(GoogleTest)
 gtest_discover_tests(contam_tests)
+
+# ── Python Module ─────────────────────────────────────────────────────
+pybind11_add_module(pycontam python/pycontam.cpp)
+target_link_libraries(pycontam PRIVATE contam_engine_lib)

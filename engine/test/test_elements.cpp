@@ -3,6 +3,7 @@
 #include "elements/TwoWayFlow.h"
 #include "elements/Duct.h"
 #include "elements/Damper.h"
+#include "elements/Filter.h"
 #include "elements/PowerLawOrifice.h"
 #include "core/Network.h"
 #include "core/Solver.h"
@@ -420,6 +421,81 @@ TEST(DamperIntegrationTest, DamperControlsFlow) {
     // Outlet damper (half open)
     Link l2(2, 1, 0, 2.5);
     l2.setFlowElement(std::make_unique<Damper>(0.005, 0.65, 0.5));
+    net.addLink(std::move(l2));
+
+    Solver solver;
+    auto result = solver.solve(net);
+    EXPECT_TRUE(result.converged);
+}
+
+// ── Filter Tests ─────────────────────────────────────────────────────
+
+TEST(FilterTest, MatchesPowerLawForAirflow) {
+    Filter filter(0.001, 0.65, 0.9);
+    PowerLawOrifice plo(0.001, 0.65);
+    auto rf = filter.calculate(10.0, 1.2);
+    auto rp = plo.calculate(10.0, 1.2);
+    EXPECT_NEAR(rf.massFlow, rp.massFlow, 1e-10);
+}
+
+TEST(FilterTest, NegativePressure) {
+    Filter filter(0.001, 0.65, 0.9);
+    auto result = filter.calculate(-10.0, 1.2);
+    EXPECT_LT(result.massFlow, 0.0);
+}
+
+TEST(FilterTest, Antisymmetry) {
+    Filter filter(0.001, 0.65, 0.9);
+    auto pos = filter.calculate(10.0, 1.2);
+    auto neg = filter.calculate(-10.0, 1.2);
+    EXPECT_NEAR(pos.massFlow, -neg.massFlow, 1e-10);
+}
+
+TEST(FilterTest, EfficiencyClamp) {
+    Filter f1(0.001, 0.65, 1.5);
+    EXPECT_DOUBLE_EQ(f1.getEfficiency(), 1.0);
+    Filter f2(0.001, 0.65, -0.5);
+    EXPECT_DOUBLE_EQ(f2.getEfficiency(), 0.0);
+}
+
+TEST(FilterTest, SetEfficiency) {
+    Filter filter(0.001, 0.65, 0.9);
+    EXPECT_DOUBLE_EQ(filter.getEfficiency(), 0.9);
+    filter.setEfficiency(0.5);
+    EXPECT_DOUBLE_EQ(filter.getEfficiency(), 0.5);
+}
+
+TEST(FilterTest, InvalidParameters) {
+    EXPECT_THROW(Filter(0.0, 0.65), std::invalid_argument);
+    EXPECT_THROW(Filter(0.001, 0.3), std::invalid_argument);
+}
+
+TEST(FilterTest, Clone) {
+    Filter filter(0.001, 0.65, 0.85);
+    auto cloned = filter.clone();
+    auto r1 = filter.calculate(10.0, 1.2);
+    auto r2 = cloned->calculate(10.0, 1.2);
+    EXPECT_DOUBLE_EQ(r1.massFlow, r2.massFlow);
+}
+
+TEST(FilterIntegrationTest, FilterInNetwork) {
+    Network net;
+
+    Node outdoor(0, "Outdoor", NodeType::Ambient);
+    outdoor.setTemperature(283.15);
+    net.addNode(outdoor);
+
+    Node room(1, "Room");
+    room.setTemperature(293.15);
+    room.setVolume(50.0);
+    net.addNode(room);
+
+    Link l1(1, 0, 1, 0.5);
+    l1.setFlowElement(std::make_unique<PowerLawOrifice>(0.003, 0.65));
+    net.addLink(std::move(l1));
+
+    Link l2(2, 1, 0, 2.5);
+    l2.setFlowElement(std::make_unique<Filter>(0.003, 0.65, 0.9));
     net.addLink(std::move(l2));
 
     Solver solver;

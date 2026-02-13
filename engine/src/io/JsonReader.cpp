@@ -4,6 +4,7 @@
 #include "elements/TwoWayFlow.h"
 #include "elements/Duct.h"
 #include "elements/Damper.h"
+#include "elements/Filter.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <stdexcept>
@@ -144,6 +145,11 @@ Network JsonReader::readFromString(const std::string& jsonStr) {
                     double n = elemDef["n"].get<double>();
                     double fraction = elemDef.value("fraction", 1.0);
                     link.setFlowElement(std::make_unique<Damper>(Cmax, n, fraction));
+                } else if (elemType == "Filter") {
+                    double C = elemDef["C"].get<double>();
+                    double n = elemDef["n"].get<double>();
+                    double efficiency = elemDef.value("efficiency", 0.9);
+                    link.setFlowElement(std::make_unique<Filter>(C, n, efficiency));
                 }
             }
 

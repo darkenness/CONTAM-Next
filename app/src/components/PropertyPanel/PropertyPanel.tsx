@@ -3,6 +3,7 @@ import type { FlowElementType, FlowElementDef } from '../../types';
 import { Trash2, Box, Cloud, Link2 } from 'lucide-react';
 import ContaminantPanel from '../ContaminantPanel/ContaminantPanel';
 import ModelSummary from '../ModelSummary/ModelSummary';
+import ScheduleEditor from '../ScheduleEditor/ScheduleEditor';
 
 function InputField({ label, value, onChange, unit, type = 'text', step }: {
   label: string; value: string | number; onChange: (v: string) => void; unit?: string; type?: string; step?: string;
@@ -115,6 +116,7 @@ function LinkProperties() {
                 Fan: { type: 'Fan', maxFlow: 0.05, shutoffPressure: 200 },
                 Duct: { type: 'Duct', length: 5.0, diameter: 0.2, roughness: 0.0001, sumK: 0 },
                 Damper: { type: 'Damper', Cmax: 0.005, n: 0.65, fraction: 1.0 },
+                Filter: { type: 'Filter', C: 0.002, n: 0.65, efficiency: 0.9 },
               };
               updateLink(link.id, { element: defaults[newType] ?? { type: newType } });
             }}
@@ -125,6 +127,7 @@ function LinkProperties() {
             <option value="Fan">风扇 / 风机</option>
             <option value="Duct">风管 / 管道</option>
             <option value="Damper">阀门 / 风阀</option>
+            <option value="Filter">过滤器</option>
           </select>
         </label>
 
@@ -230,6 +233,29 @@ function LinkProperties() {
             />
           </>
         )}
+
+        {link.element.type === 'Filter' && (
+          <>
+            <InputField
+              label="流动系数 (C)" value={link.element.C ?? 0.002} type="number" step="0.0001"
+              onChange={(v) => updateLink(link.id, {
+                element: { ...link.element, C: Math.max(0.0001, parseFloat(v) || 0.002) }
+              })}
+            />
+            <InputField
+              label="流动指数 (n)" value={link.element.n ?? 0.65} type="number" step="0.01"
+              onChange={(v) => updateLink(link.id, {
+                element: { ...link.element, n: Math.max(0.5, Math.min(1.0, parseFloat(v) || 0.65)) }
+              })}
+            />
+            <InputField
+              label="去除效率 (0~1)" value={link.element.efficiency ?? 0.9} type="number" step="0.05"
+              onChange={(v) => updateLink(link.id, {
+                element: { ...link.element, efficiency: Math.max(0, Math.min(1, parseFloat(v) || 0.9)) }
+              })}
+            />
+          </>
+        )}
       </div>
 
       <div className="mt-1 px-2 py-1.5 bg-slate-50 rounded text-[10px] text-slate-500">
@@ -280,6 +306,8 @@ export default function PropertyPanel() {
             <AmbientSettings />
             <div className="border-t border-slate-100 pt-3" />
             <ContaminantPanel />
+            <div className="border-t border-slate-100 pt-3" />
+            <ScheduleEditor />
             <div className="border-t border-slate-100 pt-3" />
             <ModelSummary />
             <div className="border-t border-slate-100 pt-3 text-xs text-slate-400 leading-relaxed">

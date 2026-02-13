@@ -75,6 +75,7 @@ set(ENGINE_SOURCES
     src/elements/TwoWayFlow.cpp
     src/elements/Duct.cpp
     src/elements/Damper.cpp
+    src/elements/Filter.cpp
     src/io/JsonReader.cpp
     src/io/JsonWriter.cpp
     src/utils/Constants.cpp

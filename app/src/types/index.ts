@@ -17,7 +17,7 @@ export interface ZoneNode {
 }
 
 // ── Flow Element ─────────────────────────────────────────────────────
-export type FlowElementType = 'PowerLawOrifice' | 'TwoWayFlow' | 'Fan' | 'Duct' | 'Damper';
+export type FlowElementType = 'PowerLawOrifice' | 'TwoWayFlow' | 'Fan' | 'Duct' | 'Damper' | 'Filter';
 
 export interface FlowElementDef {
   type: FlowElementType;
@@ -33,6 +33,7 @@ export interface FlowElementDef {
   sumK?: number;           // minor loss coefficients (Duct)
   Cmax?: number;           // max flow coefficient (Damper)
   fraction?: number;       // opening fraction 0-1 (Damper)
+  efficiency?: number;     // removal efficiency 0-1 (Filter)
 }
 
 // ── Link (Airflow Path) ──────────────────────────────────────────────

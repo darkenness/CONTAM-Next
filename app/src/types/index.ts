@@ -31,6 +31,8 @@ export interface FlowElementDef {
   diameter?: number;       // hydraulic diameter m (Duct)
   roughness?: number;      // surface roughness m (Duct)
   sumK?: number;           // minor loss coefficients (Duct)
+  Cmax?: number;           // max flow coefficient (Damper)
+  fraction?: number;       // opening fraction 0-1 (Damper)
 }
 
 // ── Link (Airflow Path) ──────────────────────────────────────────────

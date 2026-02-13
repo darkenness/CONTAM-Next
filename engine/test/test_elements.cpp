@@ -2,6 +2,7 @@
 #include "elements/Fan.h"
 #include "elements/TwoWayFlow.h"
 #include "elements/Duct.h"
+#include "elements/Damper.h"
 #include "elements/PowerLawOrifice.h"
 #include "core/Network.h"
 #include "core/Solver.h"
@@ -319,4 +320,109 @@ TEST(DuctIntegrationTest, DuctWithFanNetwork) {
     EXPECT_GT(result.massFlows[0], 0.0);
     // Duct exhaust flow out of room
     EXPECT_GT(result.massFlows[1], 0.0);
+}
+
+// ── Damper Tests ─────────────────────────────────────────────────────
+
+TEST(DamperTest, FullyOpenMatchesPowerLaw) {
+    Damper damper(0.001, 0.65, 1.0);
+    PowerLawOrifice plo(0.001, 0.65);
+    double density = 1.2;
+    auto rd = damper.calculate(10.0, density);
+    auto rp = plo.calculate(10.0, density);
+    EXPECT_NEAR(rd.massFlow, rp.massFlow, 1e-10);
+}
+
+TEST(DamperTest, FullyClosedZeroFlow) {
+    Damper damper(0.001, 0.65, 0.0);
+    auto result = damper.calculate(50.0, 1.2);
+    EXPECT_NEAR(result.massFlow, 0.0, 1e-10);
+}
+
+TEST(DamperTest, HalfOpenReducesFlow) {
+    Damper full(0.001, 0.65, 1.0);
+    Damper half(0.001, 0.65, 0.5);
+    auto rFull = full.calculate(50.0, 1.2);
+    auto rHalf = half.calculate(50.0, 1.2);
+    EXPECT_GT(rFull.massFlow, rHalf.massFlow);
+    EXPECT_GT(rHalf.massFlow, 0.0);
+}
+
+TEST(DamperTest, NegativePressureNegativeFlow) {
+    Damper damper(0.001, 0.65, 0.8);
+    auto result = damper.calculate(-10.0, 1.2);
+    EXPECT_LT(result.massFlow, 0.0);
+}
+
+TEST(DamperTest, Antisymmetry) {
+    Damper damper(0.001, 0.65, 0.7);
+    auto pos = damper.calculate(10.0, 1.2);
+    auto neg = damper.calculate(-10.0, 1.2);
+    EXPECT_NEAR(pos.massFlow, -neg.massFlow, 1e-10);
+}
+
+TEST(DamperTest, SetFractionChangesFlow) {
+    Damper damper(0.001, 0.65, 1.0);
+    auto r1 = damper.calculate(10.0, 1.2);
+    damper.setFraction(0.3);
+    auto r2 = damper.calculate(10.0, 1.2);
+    EXPECT_GT(r1.massFlow, r2.massFlow);
+}
+
+TEST(DamperTest, FractionClampedToRange) {
+    Damper damper(0.001, 0.65, 1.5);  // clamped to 1.0
+    EXPECT_DOUBLE_EQ(damper.getFraction(), 1.0);
+    damper.setFraction(-0.5);  // clamped to 0.0
+    EXPECT_DOUBLE_EQ(damper.getFraction(), 0.0);
+}
+
+TEST(DamperTest, InvalidParameters) {
+    EXPECT_THROW(Damper(0.0, 0.65), std::invalid_argument);
+    EXPECT_THROW(Damper(0.001, 0.3), std::invalid_argument);
+    EXPECT_THROW(Damper(0.001, 1.1), std::invalid_argument);
+}
+
+TEST(DamperTest, Clone) {
+    Damper damper(0.001, 0.65, 0.6);
+    auto cloned = damper.clone();
+    auto r1 = damper.calculate(10.0, 1.2);
+    auto r2 = cloned->calculate(10.0, 1.2);
+    EXPECT_DOUBLE_EQ(r1.massFlow, r2.massFlow);
+}
+
+TEST(DamperTest, ZeroPressureLinearization) {
+    Damper damper(0.001, 0.65, 0.8);
+    auto result = damper.calculate(0.0, 1.2);
+    EXPECT_NEAR(result.massFlow, 0.0, 1e-10);
+    EXPECT_GT(result.derivative, 0.0);
+}
+
+// ── Integration: Damper in Network ───────────────────────────────────
+
+TEST(DamperIntegrationTest, DamperControlsFlow) {
+    // Two rooms connected by a damper, with stack-driven flow
+    Network net;
+
+    Node outdoor(0, "Outdoor", NodeType::Ambient);
+    outdoor.setTemperature(283.15);
+    net.addNode(outdoor);
+
+    Node room(1, "Room");
+    room.setTemperature(293.15);
+    room.setVolume(50.0);
+    net.addNode(room);
+
+    // Inlet crack
+    Link l1(1, 0, 1, 0.5);
+    l1.setFlowElement(std::make_unique<PowerLawOrifice>(0.003, 0.65));
+    net.addLink(std::move(l1));
+
+    // Outlet damper (half open)
+    Link l2(2, 1, 0, 2.5);
+    l2.setFlowElement(std::make_unique<Damper>(0.005, 0.65, 0.5));
+    net.addLink(std::move(l2));
+
+    Solver solver;
+    auto result = solver.solve(net);
+    EXPECT_TRUE(result.converged);
 }

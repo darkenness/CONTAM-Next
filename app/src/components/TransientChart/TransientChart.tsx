@@ -1,6 +1,6 @@
 import ReactEChartsCore from 'echarts-for-react';
 import { useAppStore } from '../../store/useAppStore';
-import { X, TrendingUp } from 'lucide-react';
+import { X, TrendingUp, Download } from 'lucide-react';
 
 export default function TransientChart() {
   const { transientResult, setTransientResult } = useAppStore();
@@ -79,6 +79,30 @@ export default function TransientChart() {
           {transientResult.completed ? '已完成' : '未完成'} · {transientResult.totalSteps} 个输出步
         </span>
         <div className="flex-1" />
+        <button onClick={() => {
+          // Build CSV
+          const header = ['时间(s)', ...nodes.filter(nd => nd.type !== 'ambient').flatMap(nd =>
+            species.map(sp => `${nd.name}_${sp.name}(kg/m³)`)
+          )].join(',');
+          const rows = timeSeries.map(ts => {
+            const vals = [ts.time.toString()];
+            nodes.forEach((nd, ni) => {
+              if (nd.type === 'ambient') return;
+              species.forEach((_, si) => {
+                vals.push((ts.concentrations?.[ni]?.[si] ?? 0).toExponential(6));
+              });
+            });
+            return vals.join(',');
+          });
+          const csv = [header, ...rows].join('\n');
+          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'transient_results.csv'; a.click();
+          URL.revokeObjectURL(url);
+        }} className="p-0.5 hover:bg-slate-100 rounded" title="导出CSV">
+          <Download size={12} className="text-slate-400" />
+        </button>
         <button onClick={() => setTransientResult(null)} className="p-0.5 hover:bg-slate-100 rounded">
           <X size={12} className="text-slate-400" />
         </button>

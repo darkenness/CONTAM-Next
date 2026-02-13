@@ -1,0 +1,49 @@
+{
+    "description": "Case 04: Multi-zone ventilation with all element types (PowerLawOrifice, Fan, TwoWayFlow, Duct, Damper)",
+    "ambient": {
+        "temperature": 278.15,
+        "pressure": 0.0,
+        "windSpeed": 3.0,
+        "windDirection": 0.0
+    },
+    "flowElements": {
+        "supply_fan": { "type": "Fan", "maxFlow": 0.08, "shutoffPressure": 250 },
+        "supply_duct": { "type": "Duct", "length": 6.0, "diameter": 0.2, "roughness": 0.0001, "sumK": 3.0 },
+        "exhaust_duct": { "type": "Duct", "length": 8.0, "diameter": 0.18, "roughness": 0.0001, "sumK": 2.5 },
+        "office_door": { "type": "TwoWayFlow", "Cd": 0.65, "area": 0.015 },
+        "corridor_damper": { "type": "Damper", "Cmax": 0.003, "n": 0.65, "fraction": 0.7 },
+        "window_crack": { "type": "PowerLawOrifice", "C": 0.0008, "n": 0.65 },
+        "facade_crack": { "type": "PowerLawOrifice", "C": 0.0005, "n": 0.65 }
+    },
+    "nodes": [
+        { "id": 0, "name": "Outdoor", "type": "ambient", "temperature": 278.15 },
+        { "id": 1, "name": "Office A", "type": "normal", "temperature": 295.15, "elevation": 0.0, "volume": 45.0 },
+        { "id": 2, "name": "Office B", "type": "normal", "temperature": 294.15, "elevation": 0.0, "volume": 55.0 },
+        { "id": 3, "name": "Corridor", "type": "normal", "temperature": 291.15, "elevation": 0.0, "volume": 30.0 }
+    ],
+    "links": [
+        { "id": 1, "from": 0, "to": 1, "elevation": 2.5, "element": "supply_fan" },
+        { "id": 2, "from": 0, "to": 1, "elevation": 2.5, "element": "supply_duct" },
+        { "id": 3, "from": 1, "to": 3, "elevation": 1.0, "element": "office_door" },
+        { "id": 4, "from": 2, "to": 3, "elevation": 1.0, "element": "office_door" },
+        { "id": 5, "from": 0, "to": 2, "elevation": 1.0, "element": "window_crack" },
+        { "id": 6, "from": 3, "to": 0, "elevation": 2.5, "element": "exhaust_duct" },
+        { "id": 7, "from": 3, "to": 0, "elevation": 1.5, "element": "corridor_damper" },
+        { "id": 8, "from": 1, "to": 0, "elevation": 0.5, "element": "facade_crack" }
+    ],
+    "species": [
+        { "id": 0, "name": "CO2", "molarMass": 0.044, "decayRate": 0.0, "outdoorConcentration": 7.2e-4 },
+        { "id": 1, "name": "PM2.5", "molarMass": 0.029, "decayRate": 0.0001, "outdoorConcentration": 3.5e-5 }
+    ],
+    "sources": [
+        { "zoneId": 1, "speciesId": 0, "generationRate": 6e-6, "removalRate": 0.0, "scheduleId": -1 },
+        { "zoneId": 2, "speciesId": 0, "generationRate": 8e-6, "removalRate": 0.0, "scheduleId": -1 }
+    ],
+    "schedules": [],
+    "transient": {
+        "startTime": 0.0,
+        "endTime": 7200.0,
+        "timeStep": 30.0,
+        "outputInterval": 120.0
+    }
+}

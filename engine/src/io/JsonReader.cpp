@@ -3,6 +3,7 @@
 #include "elements/Fan.h"
 #include "elements/TwoWayFlow.h"
 #include "elements/Duct.h"
+#include "elements/Damper.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <stdexcept>
@@ -138,6 +139,11 @@ Network JsonReader::readFromString(const std::string& jsonStr) {
                     double roughness = elemDef.value("roughness", 0.0001);
                     double sumK = elemDef.value("sumK", 0.0);
                     link.setFlowElement(std::make_unique<Duct>(length, diameter, roughness, sumK));
+                } else if (elemType == "Damper") {
+                    double Cmax = elemDef["Cmax"].get<double>();
+                    double n = elemDef["n"].get<double>();
+                    double fraction = elemDef.value("fraction", 1.0);
+                    link.setFlowElement(std::make_unique<Damper>(Cmax, n, fraction));
                 }
             }
 

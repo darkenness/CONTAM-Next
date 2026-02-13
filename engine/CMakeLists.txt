@@ -49,6 +49,7 @@ set(ENGINE_SOURCES
     src/elements/Fan.cpp
     src/elements/TwoWayFlow.cpp
     src/elements/Duct.cpp
+    src/elements/Damper.cpp
     src/io/JsonReader.cpp
     src/io/JsonWriter.cpp
     src/utils/Constants.cpp

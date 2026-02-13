@@ -79,3 +79,4 @@ contam-next/
 - ✅ Phase 5: Damper + full element UI + CSV export (75/75 tests, 4 validation cases)
 - ✅ Phase 6: ModelSummary + validation warnings + StatusBar enhancements
 - ✅ Phase 7: Python API via pybind11 (pycontam module, 5/5 tests)
+- ✅ Phase 8: HDF5 output (h5py export, gzip compression, 3D arrays)

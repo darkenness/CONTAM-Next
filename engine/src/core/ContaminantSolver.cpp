@@ -174,12 +174,20 @@ void ContaminantSolver::solveSpecies(const Network& network, int specIdx, double
         double scheduleMult = getScheduleValue(src.scheduleId, t + dt);
 
         if (src.type == SourceType::ExponentialDecay) {
-            // S(t) = mult * G0 * exp(-(t - startTime) / tau_c)
             double elapsed = (t + dt) - src.startTime;
             if (elapsed >= 0.0 && src.decayTimeConstant > 0.0) {
                 double decayGen = src.multiplier * src.generationRate
                                   * std::exp(-elapsed / src.decayTimeConstant);
                 b(eq) += decayGen * scheduleMult;
+            }
+        } else if (src.type == SourceType::PressureDriven) {
+            // G = pressureCoeff * |P_zone|
+            double P = std::abs(network.getNode(zoneIdx).getPressure());
+            b(eq) += src.pressureCoeff * P * scheduleMult;
+        } else if (src.type == SourceType::CutoffConcentration) {
+            // G = genRate when C < cutoff, 0 otherwise
+            if (C_[zoneIdx][specIdx] < src.cutoffConc) {
+                b(eq) += src.generationRate * scheduleMult;
             }
         } else {
             // Constant source: G * schedule → RHS

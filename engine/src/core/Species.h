@@ -41,16 +41,24 @@ struct Source {
     double startTime;         // when the source was activated (s)
     double multiplier;        // scaling multiplier (default 1.0)
 
+    // PressureDriven specific:
+    double pressureCoeff;     // generation rate per Pa of pressure difference (kg/(s·Pa))
+
+    // CutoffConcentration specific:
+    double cutoffConc;        // concentration threshold (kg/m³), source stops when C >= cutoff
+
     Source()
         : zoneId(0), speciesId(0), type(SourceType::Constant),
           generationRate(0.0), removalRate(0.0), scheduleId(-1),
-          decayTimeConstant(3600.0), startTime(0.0), multiplier(1.0) {}
+          decayTimeConstant(3600.0), startTime(0.0), multiplier(1.0),
+          pressureCoeff(0.0), cutoffConc(0.0) {}
 
     Source(int zoneId, int speciesId, double genRate, double remRate = 0.0,
            int schedId = -1)
         : zoneId(zoneId), speciesId(speciesId), type(SourceType::Constant),
           generationRate(genRate), removalRate(remRate), scheduleId(schedId),
-          decayTimeConstant(3600.0), startTime(0.0), multiplier(1.0) {}
+          decayTimeConstant(3600.0), startTime(0.0), multiplier(1.0),
+          pressureCoeff(0.0), cutoffConc(0.0) {}
 
     // Factory for exponential decay source
     static Source makeDecay(int zoneId, int speciesId, double G0, double tauC,
@@ -63,6 +71,27 @@ struct Source {
         s.decayTimeConstant = tauC;
         s.startTime = startT;
         s.multiplier = mult;
+        return s;
+    }
+
+    // Factory for pressure-driven source: G = pressureCoeff * |P_zone|
+    static Source makePressureDriven(int zoneId, int speciesId, double pCoeff) {
+        Source s;
+        s.zoneId = zoneId;
+        s.speciesId = speciesId;
+        s.type = SourceType::PressureDriven;
+        s.pressureCoeff = pCoeff;
+        return s;
+    }
+
+    // Factory for cutoff source: G = genRate when C < cutoff, 0 otherwise
+    static Source makeCutoff(int zoneId, int speciesId, double genRate, double cutoff) {
+        Source s;
+        s.zoneId = zoneId;
+        s.speciesId = speciesId;
+        s.type = SourceType::CutoffConcentration;
+        s.generationRate = genRate;
+        s.cutoffConc = cutoff;
         return s;
     }
 };

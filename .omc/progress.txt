@@ -1,0 +1,35 @@
+# Ralph Progress Log
+Started: 2026-02-14T16:14:00+08:00
+
+## Codebase Patterns
+- React 19 + TypeScript + Vite 8 beta + Tailwind v4 (CSS-first, @import "tailwindcss")
+- State: Zustand + zundo (temporal undo/redo)
+- Canvas: Konva.js (react-konva)
+- Charts: ECharts (echarts-for-react)
+- Icons: Lucide React
+- No component library (all hand-written Tailwind classes)
+- Tauri 2.0 desktop shell calling C++ engine
+- Types defined in app/src/types/index.ts
+- Store in app/src/store/useAppStore.ts
+- 10 components in app/src/components/
+
+## Sprint Plan
+- Sprint A (US-001/002): shadcn/ui foundation + layout restructure
+- Sprint B (US-003): Property panel tabs + accordion + ControlPanel persistence
+- Sprint C (US-004/005): SketchPad canvas upgrade
+- Sprint D (US-006/007): Pollutant templates + ACH + units
+- Sprint E (US-008): Concentration heatmap
+- Sprint F (US-009/010): Occupant system + exposure report
+- Sprint G (US-011): Data export
+- Sprint H (US-012/013): Schedule binding + HVAC editor
+- Sprint I (US-014): Multi-floor
+- Sprint J (US-015): Interaction polish
+- Sprint K (US-016): Results panel enhancements
+- Sprint L (US-017): Simulation progress + cancel + sweep
+- Sprint M (US-018): Dark mode + theme
+- Sprint N (US-019): Performance + a11y
+
+---
+
+## US-001: shadcn/ui + Design Token Foundation
+Status: IN PROGRESS

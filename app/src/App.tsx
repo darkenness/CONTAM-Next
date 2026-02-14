@@ -4,6 +4,7 @@ import { Toaster } from './components/ui/toaster';
 import TopBar from './components/TopBar/TopBar';
 import VerticalToolbar from './components/VerticalToolbar/VerticalToolbar';
 import SketchPad from './components/SketchPad/SketchPad';
+import WelcomePage from './components/WelcomePage/WelcomePage';
 import PropertyPanel from './components/PropertyPanel/PropertyPanel';
 import ResultsView from './components/ResultsView/ResultsView';
 import TransientChart from './components/TransientChart/TransientChart';
@@ -44,32 +45,39 @@ function BottomPanel() {
 }
 
 function App() {
+  const { nodes } = useAppStore();
+  const isEmpty = nodes.length === 0;
+
   return (
     <TooltipProvider>
       <div className="flex flex-col h-screen w-screen bg-background text-foreground">
         <TopBar />
-        <div className="flex flex-1 min-h-0">
-          <VerticalToolbar />
-          <PanelGroup orientation="horizontal">
-            {/* Center: Canvas + Bottom Results */}
-            <Panel defaultSize={75} minSize={40}>
-              <div className="flex flex-col h-full">
-                <div className="flex-1 min-h-0">
-                  <SketchPad />
+        {isEmpty ? (
+          <WelcomePage />
+        ) : (
+          <div className="flex flex-1 min-h-0">
+            <VerticalToolbar />
+            <PanelGroup orientation="horizontal">
+              {/* Center: Canvas + Bottom Results */}
+              <Panel defaultSize={75} minSize={40}>
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 min-h-0">
+                    <SketchPad />
+                  </div>
+                  <BottomPanel />
                 </div>
-                <BottomPanel />
-              </div>
-            </Panel>
+              </Panel>
 
-            {/* Resize Handle */}
-            <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30 transition-colors cursor-col-resize" />
+              {/* Resize Handle */}
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30 transition-colors cursor-col-resize" />
 
-            {/* Right: Property Panel */}
-            <Panel defaultSize={25} minSize={15} maxSize={40}>
-              <PropertyPanel />
-            </Panel>
-          </PanelGroup>
-        </div>
+              {/* Right: Property Panel */}
+              <Panel defaultSize={25} minSize={15} maxSize={40}>
+                <PropertyPanel />
+              </Panel>
+            </PanelGroup>
+          </div>
+        )}
         <StatusBar />
       </div>
       <Toaster />

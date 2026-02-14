@@ -3,6 +3,8 @@ import { Stage, Layer, Rect, Text, Arrow, Circle, Group, Line } from 'react-konv
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useAppStore } from '../../store/useAppStore';
 import type { ZoneNode, SimulationResult } from '../../types';
+import { Button } from '../ui/button';
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 const GRID_SIZE = 20;
 const COLORS = {
@@ -209,20 +211,57 @@ export default function SketchPad() {
     return { x: n.x + n.width / 2, y: n.y + n.height / 2 };
   };
 
+  const zoomTo = useCallback((newScale: number) => {
+    const clampedScale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, newScale));
+    const stage = stageRef.current;
+    if (stage) {
+      const centerX = size.width / 2;
+      const centerY = size.height / 2;
+      const oldScale = stageScale;
+      const mousePointTo = {
+        x: (centerX - stagePos.x) / oldScale,
+        y: (centerY - stagePos.y) / oldScale,
+      };
+      setStageScale(clampedScale);
+      setStagePos({
+        x: centerX - mousePointTo.x * clampedScale,
+        y: centerY - mousePointTo.y * clampedScale,
+      });
+    } else {
+      setStageScale(clampedScale);
+    }
+  }, [stageScale, stagePos, size]);
+
+  const { sources } = useAppStore();
+  const sourcesByZone = new Map<number, number>();
+  sources.forEach((s) => { sourcesByZone.set(s.zoneId, (sourcesByZone.get(s.zoneId) || 0) + 1); });
+
   return (
-    <div ref={containerRef} className="flex-1 bg-white relative overflow-hidden cursor-crosshair">
-      {/* Status bar */}
+    <div ref={containerRef} className="flex-1 bg-background relative overflow-hidden cursor-crosshair">
+      {/* Tool mode indicator */}
       {toolMode !== 'select' && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-full shadow-lg">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-lg">
           {toolMode === 'addRoom' && '点击放置房间'}
           {toolMode === 'addAmbient' && '点击放置室外节点'}
           {toolMode === 'addLink' && (linkStart === null ? '点击第一个节点' : '点击第二个节点以创建连接')}
         </div>
       )}
 
-      {/* Zoom indicator */}
-      <div className="absolute bottom-2 right-2 z-10 px-2 py-0.5 bg-white/80 border border-slate-200 rounded text-[10px] text-slate-500 select-none">
-        {Math.round(stageScale * 100)}%
+      {/* Zoom controls */}
+      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg px-1 py-0.5 shadow-sm select-none">
+        <Button variant="ghost" size="icon-sm" onClick={() => zoomTo(stageScale / SCALE_STEP)}>
+          <ZoomOut size={14} />
+        </Button>
+        <span className="text-xs text-muted-foreground w-10 text-center font-mono">
+          {Math.round(stageScale * 100)}%
+        </span>
+        <Button variant="ghost" size="icon-sm" onClick={() => zoomTo(stageScale * SCALE_STEP)}>
+          <ZoomIn size={14} />
+        </Button>
+        <div className="w-px h-4 bg-border" />
+        <Button variant="ghost" size="icon-sm" onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}>
+          <Maximize2 size={14} />
+        </Button>
       </div>
 
       <Stage

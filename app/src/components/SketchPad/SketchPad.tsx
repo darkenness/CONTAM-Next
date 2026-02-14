@@ -144,10 +144,11 @@ export default function SketchPad() {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<any>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
-  const { nodes, links, selectedNodeId, toolMode, addNode, addLink, result, selectNode } = useAppStore();
+  const { nodes, links, selectedNodeId, toolMode, addNode, addLink, result, selectNode, removeNode, selectLink, removeLink } = useAppStore();
   const [linkStart, setLinkStart] = useState<number | null>(null);
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'node' | 'link' | 'canvas'; targetId: number } | null>(null);
 
   const handleWheel = useCallback((e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
@@ -261,8 +262,21 @@ export default function SketchPad() {
   const sourcesByZone = new Map<number, number>();
   sources.forEach((s) => { sourcesByZone.set(s.zoneId, (sourcesByZone.get(s.zoneId) || 0) + 1); });
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu(null);
+    // Check if we right-clicked on a selected node or link
+    if (selectedNodeId !== null) {
+      setContextMenu({ x: e.clientX, y: e.clientY, type: 'node', targetId: selectedNodeId });
+    } else if (useAppStore.getState().selectedLinkId !== null) {
+      setContextMenu({ x: e.clientX, y: e.clientY, type: 'link', targetId: useAppStore.getState().selectedLinkId! });
+    } else {
+      setContextMenu({ x: e.clientX, y: e.clientY, type: 'canvas', targetId: -1 });
+    }
+  }, [selectedNodeId]);
+
   return (
-    <div ref={containerRef} className="flex-1 bg-background relative overflow-hidden cursor-crosshair">
+    <div ref={containerRef} className="flex-1 bg-background relative overflow-hidden cursor-crosshair" onContextMenu={handleContextMenu} onClick={() => setContextMenu(null)}>
       {/* Tool mode indicator */}
       {toolMode !== 'select' && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-lg">
@@ -288,6 +302,34 @@ export default function SketchPad() {
           <Maximize2 size={14} />
         </Button>
       </div>
+
+      {/* Context Menu Overlay */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 min-w-[160px] bg-popover border border-border rounded-md shadow-md py-1 text-sm"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.type === 'node' && (
+            <>
+              <button className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground" onClick={() => { selectNode(contextMenu.targetId); setContextMenu(null); }}>编辑属性</button>
+              <button className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground" onClick={() => { removeNode(contextMenu.targetId); setContextMenu(null); }}>删除节点</button>
+            </>
+          )}
+          {contextMenu.type === 'link' && (
+            <>
+              <button className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground" onClick={() => { selectLink(contextMenu.targetId); setContextMenu(null); }}>编辑路径</button>
+              <button className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground" onClick={() => { removeLink(contextMenu.targetId); setContextMenu(null); }}>删除路径</button>
+            </>
+          )}
+          {contextMenu.type === 'canvas' && (
+            <>
+              <button className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground" onClick={() => { addNode({ type: 'normal' }); setContextMenu(null); }}>添加房间</button>
+              <button className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground" onClick={() => { addNode({ type: 'ambient', name: '室外', temperature: 283.15, volume: 0 }); setContextMenu(null); }}>添加室外节点</button>
+            </>
+          )}
+        </div>
+      )}
 
       <Stage
         ref={stageRef}

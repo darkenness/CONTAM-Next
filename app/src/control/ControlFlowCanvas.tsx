@@ -11,7 +11,6 @@ import {
   type Connection,
   type Edge,
   type Node,
-  Position,
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -30,7 +29,7 @@ const nodeTypes = {
 };
 
 // Connection validation: enforce DAG rules
-function isValidConnection(connection: Connection): boolean {
+function isValidConnection(connection: Edge | Connection): boolean {
   // Prevent self-connections
   if (connection.source === connection.target) return false;
   // TODO: Prevent cycles (full DAG check)
@@ -108,10 +107,8 @@ function controlSystemToFlow(controlSystem: ReturnType<typeof useAppStore.getSta
 
 export default function ControlFlowCanvas() {
   const controlSystem = useAppStore(s => s.controlSystem);
-  const setControlSystem = useAppStore(s => s.setControlSystem);
-
   const initial = useMemo(() => controlSystemToFlow(controlSystem), [controlSystem]);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
+  const [nodes, , onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
 
   const onConnect = useCallback((params: Connection) => {

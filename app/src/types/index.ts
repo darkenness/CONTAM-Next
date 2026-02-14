@@ -170,7 +170,23 @@ export interface TopologyJson {
   species?: Species[];
   sources?: Source[];
   schedules?: Schedule[];
+  occupants?: Occupant[];
   transient?: TransientConfig;
+}
+
+// ── Occupant ────────────────────────────────────────────────────────
+export interface OccupantZoneAssignment {
+  startTime: number;  // seconds
+  endTime: number;    // seconds
+  zoneId: number;     // node ID (-1 = outside building)
+}
+
+export interface Occupant {
+  id: number;
+  name: string;
+  breathingRate: number;  // m³/s
+  co2EmissionRate: number; // kg/s (exhaled CO2)
+  schedule: OccupantZoneAssignment[];
 }
 
 // ── UI State ─────────────────────────────────────────────────────────
@@ -195,6 +211,7 @@ export interface AppState {
   species: Species[];
   sources: Source[];
   schedules: Schedule[];
+  occupants: Occupant[];
   transientConfig: TransientConfig;
 
   // Simulation
@@ -224,6 +241,9 @@ export interface AppState {
   removeSource: (idx: number) => void;
   updateSource: (idx: number, updates: Partial<Source>) => void;
   addSchedule: (sch: Schedule) => void;
+  addOccupant: (occ: Occupant) => void;
+  removeOccupant: (id: number) => void;
+  updateOccupant: (id: number, updates: Partial<Occupant>) => void;
   setTransientConfig: (config: Partial<TransientConfig>) => void;
   setTransientResult: (result: TransientResult | null) => void;
   exportTopology: () => TopologyJson;

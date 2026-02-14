@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
-import type { AppState, ZoneNode, AirflowLink, TopologyJson, Species, Source, Schedule, TransientResult } from '../types';
+import type { AppState, ZoneNode, AirflowLink, TopologyJson, Species, Source, Schedule, TransientResult, Occupant } from '../types';
 
 export const useAppStore = create<AppState>()(temporal((set, get) => ({
   // Model data
@@ -21,6 +21,7 @@ export const useAppStore = create<AppState>()(temporal((set, get) => ({
   species: [],
   sources: [],
   schedules: [],
+  occupants: [],
   transientConfig: { startTime: 0, endTime: 3600, timeStep: 60, outputInterval: 60 },
 
   // Simulation
@@ -106,6 +107,13 @@ export const useAppStore = create<AppState>()(temporal((set, get) => ({
     sources: state.sources.map((s, i) => (i === idx ? { ...s, ...updates } : s)),
   })),
   addSchedule: (sch: Schedule) => set((state) => ({ schedules: [...state.schedules, sch] })),
+  addOccupant: (occ: Occupant) => set((state) => ({ occupants: [...state.occupants, occ] })),
+  removeOccupant: (id: number) => set((state) => ({
+    occupants: state.occupants.filter((o) => o.id !== id),
+  })),
+  updateOccupant: (id: number, updates) => set((state) => ({
+    occupants: state.occupants.map((o) => (o.id === id ? { ...o, ...updates } : o)),
+  })),
   setTransientConfig: (config) => set((state) => ({
     transientConfig: { ...state.transientConfig, ...config },
   })),
@@ -143,6 +151,7 @@ export const useAppStore = create<AppState>()(temporal((set, get) => ({
       species: state.species.length > 0 ? state.species : undefined,
       sources: state.sources.length > 0 ? state.sources : undefined,
       schedules: state.schedules.length > 0 ? state.schedules : undefined,
+      occupants: state.occupants.length > 0 ? state.occupants : undefined,
       transient: state.species.length > 0 ? state.transientConfig : undefined,
     };
   },
@@ -198,6 +207,7 @@ export const useAppStore = create<AppState>()(temporal((set, get) => ({
       species: json.species ?? [],
       sources: json.sources ?? [],
       schedules: json.schedules ?? [],
+      occupants: json.occupants ?? [],
       transientConfig: json.transient ?? { startTime: 0, endTime: 3600, timeStep: 60, outputInterval: 60 },
       result: null,
       transientResult: null,
@@ -212,6 +222,7 @@ export const useAppStore = create<AppState>()(temporal((set, get) => ({
     species: [],
     sources: [],
     schedules: [],
+    occupants: [],
     selectedNodeId: null,
     selectedLinkId: null,
     result: null,

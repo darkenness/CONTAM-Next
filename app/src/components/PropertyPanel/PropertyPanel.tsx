@@ -6,6 +6,7 @@ import ContaminantPanel from '../ContaminantPanel/ContaminantPanel';
 import ModelSummary from '../ModelSummary/ModelSummary';
 import ScheduleEditor from '../ScheduleEditor/ScheduleEditor';
 import ControlPanel from '../ControlPanel/ControlPanel';
+import OccupantPanel from '../OccupantPanel/OccupantPanel';
 
 function InputField({ label, value, onChange, unit, type = 'text', step }: {
   label: string; value: string | number; onChange: (v: string) => void; unit?: string; type?: string; step?: string;
@@ -359,6 +360,7 @@ export default function PropertyPanel() {
               <TabsTrigger value="contam" className="flex-1 text-xs">污染物</TabsTrigger>
               <TabsTrigger value="schedule" className="flex-1 text-xs">排程</TabsTrigger>
               <TabsTrigger value="control" className="flex-1 text-xs">控制</TabsTrigger>
+              <TabsTrigger value="occupant" className="flex-1 text-xs">人员</TabsTrigger>
             </TabsList>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
@@ -377,6 +379,9 @@ export default function PropertyPanel() {
             </TabsContent>
             <TabsContent value="control" className="mt-0">
               <ControlPanel />
+            </TabsContent>
+            <TabsContent value="occupant" className="mt-0">
+              <OccupantPanel />
             </TabsContent>
           </div>
         </Tabs>

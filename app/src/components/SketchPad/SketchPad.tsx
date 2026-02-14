@@ -6,26 +6,31 @@ import type { ZoneNode, SimulationResult } from '../../types';
 
 const GRID_SIZE = 20;
 const COLORS = {
-  room: '#dbeafe',
-  roomBorder: '#3b82f6',
-  roomSelected: '#bfdbfe',
-  ambient: '#dcfce7',
-  ambientBorder: '#22c55e',
-  link: '#64748b',
-  linkSelected: '#3b82f6',
-  flowPositive: '#22c55e',
-  flowNegative: '#ef4444',
-  grid: '#f1f5f9',
-  pressure: '#7c3aed',
+  room: '#e0f2fe',
+  roomBorder: '#0284c7',
+  roomSelected: '#bae6fd',
+  roomHover: '#7dd3fc',
+  ambient: '#d1fae5',
+  ambientBorder: '#059669',
+  link: '#94a3b8',
+  linkSelected: '#0284c7',
+  flowPositive: '#10b981',
+  flowNegative: '#f43f5e',
+  grid: '#f8fafc',
+  gridMajor: '#e2e8f0',
+  pressure: '#8b5cf6',
+  canvas: '#fafbfc',
 };
 
 function GridLines({ width, height }: { width: number; height: number }) {
   const lines = [];
   for (let x = 0; x < width; x += GRID_SIZE) {
-    lines.push(<Line key={`v${x}`} points={[x, 0, x, height]} stroke={COLORS.grid} strokeWidth={0.5} />);
+    const isMajor = x % (GRID_SIZE * 5) === 0;
+    lines.push(<Line key={`v${x}`} points={[x, 0, x, height]} stroke={isMajor ? COLORS.gridMajor : COLORS.grid} strokeWidth={isMajor ? 0.8 : 0.3} />);
   }
   for (let y = 0; y < height; y += GRID_SIZE) {
-    lines.push(<Line key={`h${y}`} points={[0, y, width, y]} stroke={COLORS.grid} strokeWidth={0.5} />);
+    const isMajor = y % (GRID_SIZE * 5) === 0;
+    lines.push(<Line key={`h${y}`} points={[0, y, width, y]} stroke={isMajor ? COLORS.gridMajor : COLORS.grid} strokeWidth={isMajor ? 0.8 : 0.3} />);
   }
   return <>{lines}</>;
 }
@@ -44,9 +49,14 @@ function RoomShape({ node, isSelected, result }: { node: ZoneNode; isSelected: b
       draggable={toolMode === 'select'}
       onClick={() => { if (toolMode === 'select') selectNode(node.id); }}
       onTap={() => { if (toolMode === 'select') selectNode(node.id); }}
+      onDragMove={(e: KonvaEventObject<DragEvent>) => {
+        updateNode(node.id, { x: e.target.x(), y: e.target.y() });
+      }}
       onDragEnd={(e: KonvaEventObject<DragEvent>) => {
         const snappedX = Math.round(e.target.x() / GRID_SIZE) * GRID_SIZE;
         const snappedY = Math.round(e.target.y() / GRID_SIZE) * GRID_SIZE;
+        e.target.x(snappedX);
+        e.target.y(snappedY);
         updateNode(node.id, { x: snappedX, y: snappedY });
       }}
     >
@@ -56,29 +66,29 @@ function RoomShape({ node, isSelected, result }: { node: ZoneNode; isSelected: b
         fill={isAmbient ? COLORS.ambient : (isSelected ? COLORS.roomSelected : COLORS.room)}
         stroke={isAmbient ? COLORS.ambientBorder : COLORS.roomBorder}
         strokeWidth={isSelected ? 2.5 : 1.5}
-        cornerRadius={6}
-        shadowColor="rgba(0,0,0,0.08)"
-        shadowBlur={isSelected ? 12 : 4}
-        shadowOffsetY={2}
+        cornerRadius={8}
+        shadowColor={isSelected ? 'rgba(2,132,199,0.25)' : 'rgba(0,0,0,0.1)'}
+        shadowBlur={isSelected ? 16 : 6}
+        shadowOffsetY={isSelected ? 1 : 2}
       />
       <Text
         text={node.name}
         x={4}
-        y={6}
+        y={8}
         width={node.width - 8}
-        fontSize={11}
-        fontFamily="Inter, sans-serif"
+        fontSize={12}
+        fontFamily="'SF Pro Text', 'PingFang SC', system-ui, sans-serif"
         fontStyle="600"
-        fill={isAmbient ? '#166534' : '#1e40af'}
+        fill={isAmbient ? '#065f46' : '#0c4a6e'}
         align="center"
       />
       <Text
         text={isAmbient ? `${(node.temperature - 273.15).toFixed(0)}°C` : `${node.volume}m³`}
         x={4}
-        y={22}
+        y={24}
         width={node.width - 8}
-        fontSize={9}
-        fontFamily="Inter, sans-serif"
+        fontSize={10}
+        fontFamily="'SF Pro Text', 'PingFang SC', system-ui, sans-serif"
         fill="#64748b"
         align="center"
       />

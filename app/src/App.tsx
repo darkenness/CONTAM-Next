@@ -3,7 +3,8 @@ import { TooltipProvider } from './components/ui/tooltip';
 import { Toaster } from './components/ui/toaster';
 import TopBar from './components/TopBar/TopBar';
 import VerticalToolbar from './components/VerticalToolbar/VerticalToolbar';
-import SketchPad from './components/SketchPad/SketchPad';
+import IsometricCanvas from './canvas/IsometricCanvas';
+import ControlFlowCanvas from './control/ControlFlowCanvas';
 import WelcomePage from './components/WelcomePage/WelcomePage';
 import PropertyPanel from './components/PropertyPanel/PropertyPanel';
 import ResultsView from './components/ResultsView/ResultsView';
@@ -78,8 +79,8 @@ function BottomPanel() {
 }
 
 function App() {
-  const { nodes, loadFromJson } = useAppStore();
-  const isEmpty = nodes.length === 0;
+  const { loadFromJson } = useAppStore();
+  const [showWelcome, setShowWelcome] = useState(true);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -95,6 +96,7 @@ function App() {
       try {
         const json = JSON.parse(ev.target?.result as string);
         loadFromJson(json);
+        setShowWelcome(false);
         toast({ title: '已加载', description: file.name });
       } catch {
         toast({ title: '文件解析失败', variant: 'destructive' });
@@ -107,20 +109,33 @@ function App() {
     <TooltipProvider>
       <div className="flex flex-col h-screen w-screen bg-background text-foreground" onDragOver={handleDragOver} onDrop={handleDrop}>
         <TopBar />
-        {isEmpty ? (
-          <WelcomePage />
+        {showWelcome ? (
+          <WelcomePage onStart={() => setShowWelcome(false)} />
         ) : (
           <div className="flex flex-1 min-h-0">
             <VerticalToolbar />
             <PanelGroup orientation="horizontal">
               {/* Center: Canvas + Bottom Results */}
               <Panel defaultSize={75} minSize={40}>
-                <div className="flex flex-col h-full">
-                  <div className="flex-1 min-h-0">
-                    <SketchPad />
+                <Tabs defaultValue="canvas" className="flex flex-col h-full">
+                  <div className="flex items-center border-b border-border px-2 shrink-0">
+                    <TabsList className="h-8">
+                      <TabsTrigger value="canvas" className="text-xs">2.5D 画布</TabsTrigger>
+                      <TabsTrigger value="control" className="text-xs">控制网络</TabsTrigger>
+                    </TabsList>
                   </div>
-                  <BottomPanel />
-                </div>
+                  <TabsContent value="canvas" className="flex-1 min-h-0 mt-0">
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1 min-h-0">
+                        <IsometricCanvas />
+                      </div>
+                      <BottomPanel />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="control" className="flex-1 min-h-0 mt-0">
+                    <ControlFlowCanvas />
+                  </TabsContent>
+                </Tabs>
               </Panel>
 
               {/* Resize Handle */}

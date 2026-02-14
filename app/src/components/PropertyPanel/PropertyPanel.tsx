@@ -1,4 +1,5 @@
 import { useAppStore } from '../../store/useAppStore';
+import { useCanvasStore } from '../../store/useCanvasStore';
 import type { FlowElementType, FlowElementDef } from '../../types';
 import { Trash2, Box, Cloud, Link2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
@@ -8,6 +9,7 @@ import ScheduleEditor from '../ScheduleEditor/ScheduleEditor';
 import ScheduleGantt from '../ScheduleGantt/ScheduleGantt';
 import ControlPanel from '../ControlPanel/ControlPanel';
 import OccupantPanel from '../OccupantPanel/OccupantPanel';
+import { ZoneProperties, EdgeProperties, StoryProperties } from './ZoneProperties';
 
 function InputField({ label, value, onChange, unit, type = 'text', step }: {
   label: string; value: string | number; onChange: (v: string) => void; unit?: string; type?: string; step?: string;
@@ -378,23 +380,28 @@ function AmbientSettings() {
 
 export default function PropertyPanel() {
   const { selectedNodeId, selectedLinkId } = useAppStore();
+  const selectedFaceId = useCanvasStore(s => s.selectedFaceId);
+  const selectedEdgeId = useCanvasStore(s => s.selectedEdgeId);
 
-  const hasSelection = selectedNodeId !== null || selectedLinkId !== null;
+  const hasOldSelection = selectedNodeId !== null || selectedLinkId !== null;
+  const hasCanvasSelection = selectedFaceId !== null || selectedEdgeId !== null;
+  const hasSelection = hasOldSelection || hasCanvasSelection;
 
   return (
     <aside className="bg-card flex flex-col h-full overflow-hidden">
       {hasSelection ? (
-        /* When a node/link is selected, show its properties */
         <div className="flex flex-col h-full">
           <div className="px-3 py-2.5 border-b border-border">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">属性</h2>
           </div>
           <div className="p-3 flex-1 overflow-y-auto">
-            {selectedNodeId !== null ? <NodeProperties /> : <LinkProperties />}
+            {selectedFaceId !== null ? <ZoneProperties /> :
+             selectedEdgeId !== null ? <EdgeProperties /> :
+             selectedNodeId !== null ? <NodeProperties /> :
+             <LinkProperties />}
           </div>
         </div>
       ) : (
-        /* When nothing selected, show tabbed panels */
         <Tabs defaultValue="model" className="flex flex-col h-full">
           <div className="px-2 pt-2 border-b border-border shrink-0">
             <TabsList className="w-full h-8">
@@ -408,6 +415,8 @@ export default function PropertyPanel() {
           <div className="flex-1 overflow-y-auto p-3">
             <TabsContent value="model" className="mt-0">
               <div className="flex flex-col gap-4">
+                <StoryProperties />
+                <div className="border-t border-border" />
                 <AmbientSettings />
                 <div className="border-t border-border" />
                 <ModelSummary />

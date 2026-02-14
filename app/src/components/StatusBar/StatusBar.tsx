@@ -1,115 +1,79 @@
-import { useAppStore } from '../../store/useAppStore';
+import { useCanvasStore } from '../../store/useCanvasStore';
 import { useEffect, useState } from 'react';
 import ShortcutDialog from '../ShortcutDialog/ShortcutDialog';
 
 const TOOL_NAMES: Record<string, string> = {
   select: '选择',
-  addRoom: '添加房间',
-  addAmbient: '添加室外节点',
-  addLink: '创建连接',
-};
-
-const SHORTCUTS: Record<string, string> = {
-  '1': '选择',
-  '2': '房间',
-  '3': '室外',
-  '4': '连接',
-  'Del': '删除',
-  'Esc': '取消选择',
+  wall: '画墙',
+  door: '放置门',
+  window: '放置窗',
+  erase: '删除',
+  pan: '平移',
 };
 
 export default function StatusBar() {
-  const {
-    nodes, links, toolMode, setToolMode,
-    selectedNodeId, selectedLinkId, selectNode, selectLink,
-    removeNode, removeLink,
-  } = useAppStore();
+  const toolMode = useCanvasStore(s => s.toolMode);
+  const cursorGrid = useCanvasStore(s => s.cursorGrid);
+  const hoveredEdgeId = useCanvasStore(s => s.hoveredEdgeId);
+  const hoveredFaceId = useCanvasStore(s => s.hoveredFaceId);
+  const selectedEdgeId = useCanvasStore(s => s.selectedEdgeId);
+  const selectedFaceId = useCanvasStore(s => s.selectedFaceId);
+  const stories = useCanvasStore(s => s.stories);
+  const activeStoryId = useCanvasStore(s => s.activeStoryId);
   const [shortcutOpen, setShortcutOpen] = useState(false);
 
-  // Global keyboard shortcuts
+  const activeStory = stories.find(s => s.id === activeStoryId);
+  const wallCount = activeStory?.geometry.edges.length ?? 0;
+  const zoneCount = activeStory?.geometry.faces.length ?? 0;
+
+  // Global Undo/Redo + ? shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Don't capture when typing in inputs
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
 
-      // Undo/Redo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        useAppStore.temporal.getState().undo();
+        useCanvasStore.temporal.getState().undo();
         return;
       }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
-        useAppStore.temporal.getState().redo();
+        useCanvasStore.temporal.getState().redo();
         return;
       }
-
-      switch (e.key) {
-        case '1': setToolMode('select'); break;
-        case '2': setToolMode('addRoom'); break;
-        case '3': setToolMode('addAmbient'); break;
-        case '4': setToolMode('addLink'); break;
-        case '?': setShortcutOpen(true); break;
-        case 'Escape':
-          selectNode(null);
-          selectLink(null);
-          setToolMode('select');
-          break;
-        case 'Delete':
-        case 'Backspace':
-          if (selectedNodeId !== null) {
-            removeNode(selectedNodeId);
-          } else if (selectedLinkId !== null) {
-            removeLink(selectedLinkId);
-          }
-          break;
-      }
+      if (e.key === '?') setShortcutOpen(true);
     };
-
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedNodeId, selectedLinkId, setToolMode, selectNode, selectLink, removeNode, removeLink]);
+  }, []);
 
-  const { species } = useAppStore();
-  const roomCount = nodes.filter((n) => n.type === 'normal').length;
-  const ambientCount = nodes.filter((n) => n.type === 'ambient').length;
+  // Left column: hover/selection info
+  let leftInfo = `工具: ${TOOL_NAMES[toolMode] ?? toolMode}`;
+  if (hoveredEdgeId) leftInfo = `墙壁 ${hoveredEdgeId.slice(0, 8)}`;
+  if (hoveredFaceId) {
+    const zone = activeStory?.zoneAssignments.find(z => z.faceId === hoveredFaceId);
+    leftInfo = zone ? `区域: ${zone.name} (${zone.volume.toFixed(0)}m³)` : `面 ${hoveredFaceId.slice(0, 8)}`;
+  }
+  if (selectedEdgeId) leftInfo = `已选墙壁 ${selectedEdgeId.slice(0, 8)}`;
+  if (selectedFaceId) {
+    const zone = activeStory?.zoneAssignments.find(z => z.faceId === selectedFaceId);
+    leftInfo = zone ? `已选: ${zone.name}` : `已选面 ${selectedFaceId.slice(0, 8)}`;
+  }
 
-  const elemLabels: Record<string, string> = {
-    PowerLawOrifice: '孔口', TwoWayFlow: '大开口', Fan: '风扇', Duct: '风管', Damper: '阀门',
-  };
-  const elemCounts: Record<string, number> = {};
-  links.forEach((l) => { elemCounts[l.element.type] = (elemCounts[l.element.type] || 0) + 1; });
-  const elemSummary = Object.entries(elemCounts).map(([t, c]) => `${elemLabels[t] ?? t}×${c}`).join(' ');
+  // Center: grid coordinates
+  const centerInfo = cursorGrid
+    ? `X: ${cursorGrid.x.toFixed(1)}m  Y: ${cursorGrid.y.toFixed(1)}m`
+    : '';
+
+  // Right: story info + counts
+  const storyLevel = activeStory ? activeStory.level + 1 : 1;
+  const rightInfo = `墙: ${wallCount}  区域: ${zoneCount}  |  ${activeStory?.name ?? '首层'} (${storyLevel}/${stories.length})`;
 
   return (
-    <footer className="h-7 bg-muted/50 border-t border-border flex items-center px-3 gap-4 text-[11px] text-muted-foreground shrink-0 select-none">
-      <span>
-        工具: <strong className="text-foreground">{TOOL_NAMES[toolMode]}</strong>
-      </span>
-      <div className="w-px h-3.5 bg-border" />
-      <span>房间: <strong className="text-foreground">{roomCount}</strong></span>
-      <span>室外: <strong className="text-foreground">{ambientCount}</strong></span>
-      <span>路径: <strong className="text-foreground">{links.length}</strong>{elemSummary && <span className="text-muted-foreground/60 ml-0.5">({elemSummary})</span>}</span>
-      {species.length > 0 && <span>污染物: <strong className="text-purple-600">{species.length}</strong></span>}
-
-      {(selectedNodeId !== null || selectedLinkId !== null) && (
-        <>
-          <div className="w-px h-3.5 bg-border" />
-          <span className="text-primary">
-            已选中: {selectedNodeId !== null
-              ? nodes.find((n) => n.id === selectedNodeId)?.name ?? `节点 #${selectedNodeId}`
-              : `路径 #${selectedLinkId}`}
-          </span>
-        </>
-      )}
-
-      <div className="flex-1" />
-
-      <span className="text-muted-foreground/60">
-        {Object.entries(SHORTCUTS).map(([k, v]) => `${k}=${v}`).join('  ')}
-      </span>
+    <footer className="h-6 bg-card border-t border-border grid grid-cols-3 items-center px-2.5 text-[11px] text-muted-foreground shrink-0 select-none">
+      <span className="truncate">{leftInfo}</span>
+      <span className="text-center font-data text-[10px] tracking-tight">{centerInfo}</span>
+      <span className="text-right truncate font-data text-[10px]">{rightInfo}</span>
       <ShortcutDialog open={shortcutOpen} onClose={() => setShortcutOpen(false)} />
     </footer>
   );

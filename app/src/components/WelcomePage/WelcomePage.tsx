@@ -1,10 +1,15 @@
 import { useAppStore } from '../../store/useAppStore';
-import { Button } from '../ui/button';
-import { Square, Cloud, Link2, FolderOpen, BookOpen } from 'lucide-react';
+import { useCanvasStore } from '../../store/useCanvasStore';
+import { PenLine, FolderOpen, BookOpen, DoorOpen } from 'lucide-react';
 import { useRef } from 'react';
 
-export default function WelcomePage() {
-  const { setToolMode, loadFromJson, setError } = useAppStore();
+interface WelcomePageProps {
+  onStart?: () => void;
+}
+
+export default function WelcomePage({ onStart }: WelcomePageProps) {
+  const { loadFromJson, setError } = useAppStore();
+  const setToolMode = useCanvasStore(s => s.setToolMode);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpen = () => fileInputRef.current?.click();
@@ -17,6 +22,7 @@ export default function WelcomePage() {
       try {
         const json = JSON.parse(ev.target?.result as string);
         loadFromJson(json);
+        onStart?.();
       } catch (err) {
         setError(`文件解析失败: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -25,87 +31,81 @@ export default function WelcomePage() {
     e.target.value = '';
   };
 
-  const loadExample = () => {
-    loadFromJson({
-      description: '示例：3房间自然通风',
-      ambient: { temperature: 283.15, pressure: 0, windSpeed: 3, windDirection: 0 },
-      nodes: [
-        { id: 1, name: '室外', type: 'ambient', temperature: 283.15, elevation: 0, volume: 0 },
-        { id: 2, name: '客厅', type: 'normal', temperature: 293.15, elevation: 0, volume: 60 },
-        { id: 3, name: '卧室', type: 'normal', temperature: 295.15, elevation: 0, volume: 30 },
-        { id: 4, name: '厨房', type: 'normal', temperature: 297.15, elevation: 0, volume: 20 },
-      ],
-      links: [
-        { id: 5, from: 1, to: 2, elevation: 1.5, element: { type: 'PowerLawOrifice', C: 0.002, n: 0.65 } },
-        { id: 6, from: 2, to: 3, elevation: 1.5, element: { type: 'TwoWayFlow', Cd: 0.65, area: 1.8 } },
-        { id: 7, from: 2, to: 4, elevation: 1.5, element: { type: 'PowerLawOrifice', C: 0.001, n: 0.65 } },
-        { id: 8, from: 4, to: 1, elevation: 2.5, element: { type: 'Fan', maxFlow: 0.05, shutoffPressure: 100 } },
-      ],
-      species: [
-        { id: 0, name: 'CO₂', molarMass: 0.044, decayRate: 0, outdoorConcentration: 7.2e-4 },
-      ],
-      sources: [
-        { zoneId: 2, speciesId: 0, generationRate: 5e-6, removalRate: 0, scheduleId: -1 },
-      ],
-      transient: { startTime: 0, endTime: 3600, timeStep: 60, outputInterval: 60 },
-    });
+  const handleNewProject = () => {
+    setToolMode('wall');
+    onStart?.();
   };
 
+  const handleStartEmpty = () => {
+    onStart?.();
+  };
+
+  const steps = [
+    '在 2.5D 等距画布上画墙，围合区域自动生成房间',
+    '在墙上放置门窗、风机等气流路径组件',
+    '配置污染物种类、排程和控制系统',
+    '运行稳态求解或瞬态仿真，查看 2.5D 结果动画',
+  ];
+
   return (
-    <div className="flex-1 flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-6 max-w-md px-8">
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-xl font-black text-white shadow-lg">
-            C
+    <div className="flex-1 flex items-center justify-center bg-background relative overflow-hidden">
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: 'linear-gradient(var(--foreground) 1px, transparent 1px), linear-gradient(90deg, var(--foreground) 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }} />
+
+      <div className="relative flex flex-col items-center gap-8 max-w-[420px] px-8">
+        {/* Logo + Title */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-11 h-11 rounded-lg bg-primary flex items-center justify-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L22 8V16L12 22L2 16V8L12 2Z" stroke="currentColor" strokeWidth="1.5" fill="none" className="text-primary-foreground"/>
+              <circle cx="12" cy="12" r="3" fill="currentColor" className="text-primary-foreground"/>
+              <path d="M12 9V5M12 15V19M9 12H5M15 12H19" stroke="currentColor" strokeWidth="1" className="text-primary-foreground" opacity="0.5"/>
+            </svg>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">CONTAM-Next</h1>
-            <p className="text-sm text-muted-foreground">多区域气流与污染物传输仿真</p>
+          <div className="text-center">
+            <h1 className="text-lg font-bold text-foreground tracking-tight">CONTAM-Next</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">多区域气流与污染物传输仿真</p>
+            <span className="inline-block mt-1 px-1.5 py-0.5 text-[9px] font-data text-primary bg-primary/8 rounded">v2.0 · 2.5D</span>
           </div>
         </div>
 
-        {/* Quick Start */}
-        <div className="w-full space-y-2">
-          <h2 className="text-sm font-semibold text-foreground">快速开始</h2>
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" className="h-auto py-3 flex-col gap-1.5" onClick={() => setToolMode('addRoom')}>
-              <Square size={20} className="text-blue-500" />
-              <span className="text-xs">添加房间</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col gap-1.5" onClick={() => setToolMode('addAmbient')}>
-              <Cloud size={20} className="text-green-500" />
-              <span className="text-xs">添加室外节点</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col gap-1.5" onClick={loadExample}>
-              <BookOpen size={20} className="text-purple-500" />
-              <span className="text-xs">加载示例模型</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col gap-1.5" onClick={handleOpen}>
-              <FolderOpen size={20} className="text-orange-500" />
-              <span className="text-xs">打开文件</span>
-            </Button>
-          </div>
+        {/* Action buttons */}
+        <div className="w-full grid grid-cols-2 gap-2">
+          <button onClick={handleNewProject} className="group flex flex-col items-center gap-2 p-3.5 rounded-lg border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all duration-150">
+            <PenLine size={18} className="text-primary" />
+            <span className="text-xs font-medium text-foreground">新建项目</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">画墙 → 围合 → 仿真</span>
+          </button>
+          <button onClick={handleStartEmpty} className="group flex flex-col items-center gap-2 p-3.5 rounded-lg border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all duration-150">
+            <DoorOpen size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-xs font-medium text-foreground">空白画布</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">自由探索</span>
+          </button>
+          <button onClick={() => handleStartEmpty()} className="group flex flex-col items-center gap-2 p-3.5 rounded-lg border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all duration-150">
+            <BookOpen size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-xs font-medium text-foreground">示例模型</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">即将推出</span>
+          </button>
+          <button onClick={handleOpen} className="group flex flex-col items-center gap-2 p-3.5 rounded-lg border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all duration-150">
+            <FolderOpen size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="text-xs font-medium text-foreground">打开文件</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">.contam.json</span>
+          </button>
         </div>
 
-        {/* Steps */}
-        <div className="w-full space-y-1.5 text-xs text-muted-foreground">
-          <h3 className="text-sm font-semibold text-foreground">工作流程</h3>
-          <div className="flex items-start gap-2">
-            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-            <span>在画布上绘制房间和室外节点</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
-            <span>用连接工具 (<Link2 size={12} className="inline" />) 创建气流路径，选择元件类型</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
-            <span>在右侧面板配置污染物、排程和控制系统</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">4</span>
-            <span>点击顶部"稳态求解"或"瞬态仿真"按钮运行计算</span>
+        {/* Workflow steps */}
+        <div className="w-full">
+          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">工作流程</h3>
+          <div className="space-y-0">
+            {steps.map((step, i) => (
+              <div key={i} className="flex items-start gap-2.5 py-1.5 border-l-2 border-border pl-3 ml-1 hover:border-primary/40 transition-colors">
+                <span className="font-data text-[10px] text-primary font-semibold mt-px">{String(i + 1).padStart(2, '0')}</span>
+                <span className="text-xs text-muted-foreground leading-relaxed">{step}</span>
+              </div>
+            ))}
           </div>
         </div>
 

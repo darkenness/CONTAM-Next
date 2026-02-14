@@ -129,12 +129,38 @@ function SourceSection() {
                 </select>
               </label>
             </div>
+            <label className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-semibold text-slate-500">源类型</span>
+              <select value={src.type ?? 'Constant'} onChange={(e) => updateSource(idx, { type: e.target.value as import('../../types').SourceType })}
+                className="px-1.5 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white">
+                <option value="Constant">恒定源</option>
+                <option value="ExponentialDecay">指数衰减源</option>
+                <option value="PressureDriven">压力驱动源</option>
+                <option value="CutoffConcentration">浓度切断源</option>
+              </select>
+            </label>
             <div className="grid grid-cols-2 gap-1.5">
               <InputField label="生成率" value={src.generationRate} unit="kg/s" type="number" step="1e-7"
                 onChange={(v) => updateSource(idx, { generationRate: parseFloat(v) || 0 })} />
               <InputField label="去除率" value={src.removalRate} unit="1/s" type="number" step="0.001"
                 onChange={(v) => updateSource(idx, { removalRate: parseFloat(v) || 0 })} />
             </div>
+            {src.type === 'ExponentialDecay' && (
+              <div className="grid grid-cols-2 gap-1.5">
+                <InputField label="时间常数 τ" value={src.decayTimeConstant ?? 3600} unit="s" type="number" step="60"
+                  onChange={(v) => updateSource(idx, { decayTimeConstant: parseFloat(v) || 3600 })} />
+                <InputField label="倍率" value={src.multiplier ?? 1.0} type="number" step="0.1"
+                  onChange={(v) => updateSource(idx, { multiplier: parseFloat(v) || 1.0 })} />
+              </div>
+            )}
+            {src.type === 'PressureDriven' && (
+              <InputField label="压力系数" value={src.pressureCoeff ?? 0} unit="kg/(s·Pa)" type="number" step="1e-8"
+                onChange={(v) => updateSource(idx, { pressureCoeff: parseFloat(v) || 0 })} />
+            )}
+            {src.type === 'CutoffConcentration' && (
+              <InputField label="切断浓度" value={src.cutoffConc ?? 0} unit="kg/m³" type="number" step="0.0001"
+                onChange={(v) => updateSource(idx, { cutoffConc: parseFloat(v) || 0 })} />
+            )}
           </div>
         );
       })}

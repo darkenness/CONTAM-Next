@@ -92,12 +92,20 @@ export interface Species {
   outdoorConcentration: number;
 }
 
+export type SourceType = 'Constant' | 'ExponentialDecay' | 'PressureDriven' | 'CutoffConcentration';
+
 export interface Source {
   zoneId: number;
   speciesId: number;
   generationRate: number;
   removalRate: number;
   scheduleId: number;
+  type?: SourceType;
+  decayTimeConstant?: number;  // τ_c seconds (ExponentialDecay)
+  startTime?: number;          // activation time (ExponentialDecay)
+  multiplier?: number;         // scaling factor (ExponentialDecay)
+  pressureCoeff?: number;      // kg/(s·Pa) (PressureDriven)
+  cutoffConc?: number;         // kg/m³ threshold (CutoffConcentration)
 }
 
 export interface SchedulePoint {

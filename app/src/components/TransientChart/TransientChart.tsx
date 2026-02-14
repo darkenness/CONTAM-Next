@@ -1,6 +1,7 @@
 import ReactEChartsCore from 'echarts-for-react';
 import { useAppStore } from '../../store/useAppStore';
 import { X, TrendingUp, Download } from 'lucide-react';
+import { toast } from '../../hooks/use-toast';
 
 export default function TransientChart() {
   const { transientResult, setTransientResult } = useAppStore();
@@ -80,12 +81,21 @@ export default function TransientChart() {
         </span>
         <div className="flex-1" />
         <button onClick={() => {
-          // Build CSV
-          const header = ['时间(s)', ...nodes.filter(nd => nd.type !== 'ambient').flatMap(nd =>
-            species.map(sp => `${nd.name}_${sp.name}(kg/m³)`)
-          )].join(',');
+          const nonAmbient = nodes.filter(nd => nd.type !== 'ambient');
+          // Header: time + pressure per node + concentration per node×species
+          const header = [
+            '时间(s)',
+            ...nonAmbient.map(nd => `${nd.name}_压力(Pa)`),
+            ...nonAmbient.flatMap(nd => species.map(sp => `${nd.name}_${sp.name}(kg/m³)`)),
+          ].join(',');
           const rows = timeSeries.map(ts => {
             const vals = [ts.time.toString()];
+            // Pressures
+            nodes.forEach((nd, ni) => {
+              if (nd.type === 'ambient') return;
+              vals.push((ts.airflow?.pressures?.[ni] ?? 0).toFixed(4));
+            });
+            // Concentrations
             nodes.forEach((nd, ni) => {
               if (nd.type === 'ambient') return;
               species.forEach((_, si) => {
@@ -100,11 +110,12 @@ export default function TransientChart() {
           const a = document.createElement('a');
           a.href = url; a.download = 'transient_results.csv'; a.click();
           URL.revokeObjectURL(url);
-        }} className="p-0.5 hover:bg-slate-100 rounded" title="导出CSV">
-          <Download size={12} className="text-slate-400" />
+          toast({ title: '已导出', description: 'transient_results.csv' });
+        }} className="p-0.5 hover:bg-accent rounded" title="导出CSV">
+          <Download size={12} className="text-muted-foreground" />
         </button>
-        <button onClick={() => setTransientResult(null)} className="p-0.5 hover:bg-slate-100 rounded">
-          <X size={12} className="text-slate-400" />
+        <button onClick={() => setTransientResult(null)} className="p-0.5 hover:bg-accent rounded">
+          <X size={12} className="text-muted-foreground" />
         </button>
       </div>
 

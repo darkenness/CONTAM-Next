@@ -132,6 +132,33 @@ function RoomShape({ node, isSelected, result, heatmapColor, sourceCount }: {
       {(sourceCount ?? 0) > 0 && (
         <Text x={node.width - 12} y={4} text="S" fontSize={8} fontStyle="bold" fill="white" />
       )}
+      {/* Resize handles (bottom-right corner) */}
+      {isSelected && !isAmbient && toolMode === 'select' && (
+        <Rect
+          x={node.width - 6}
+          y={node.height - 6}
+          width={12}
+          height={12}
+          fill={COLORS.roomBorder}
+          opacity={0.7}
+          cornerRadius={2}
+          draggable
+          onDragMove={(e: KonvaEventObject<DragEvent>) => {
+            const newW = Math.max(60, Math.round((e.target.x() + 6) / GRID_SIZE) * GRID_SIZE);
+            const newH = Math.max(40, Math.round((e.target.y() + 6) / GRID_SIZE) * GRID_SIZE);
+            updateNode(node.id, { width: newW, height: newH });
+            e.target.x(newW - 6);
+            e.target.y(newH - 6);
+          }}
+          onDragEnd={(e: KonvaEventObject<DragEvent>) => {
+            const newW = Math.max(60, Math.round((e.target.x() + 6) / GRID_SIZE) * GRID_SIZE);
+            const newH = Math.max(40, Math.round((e.target.y() + 6) / GRID_SIZE) * GRID_SIZE);
+            updateNode(node.id, { width: newW, height: newH });
+            e.target.x(newW - 6);
+            e.target.y(newH - 6);
+          }}
+        />
+      )}
     </Group>
   );
 }

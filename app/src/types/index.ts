@@ -9,6 +9,8 @@ export interface ZoneNode {
   elevation: number;     // m
   volume: number;        // m³
   pressure: number;      // Pa (gauge)
+  level?: number;        // floor level (0=ground, 1=first floor, etc.)
+  isShaft?: boolean;     // true = stairwell/elevator shaft spanning multiple floors
   // Canvas position (UI only)
   x: number;
   y: number;

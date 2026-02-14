@@ -21,6 +21,8 @@ export default function VerticalToolbar() {
           <TooltipTrigger asChild>
             <button
               onClick={() => setToolMode(t.mode)}
+              aria-label={t.tip}
+              aria-pressed={toolMode === t.mode}
               className={cn(
                 "w-8 h-8 flex items-center justify-center rounded-md transition-colors",
                 toolMode === t.mode

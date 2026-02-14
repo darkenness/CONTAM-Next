@@ -5,6 +5,8 @@
 #include "elements/Duct.h"
 #include "elements/Damper.h"
 #include "elements/Filter.h"
+#include "elements/SelfRegulatingVent.h"
+#include "elements/CheckValve.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <stdexcept>
@@ -127,13 +129,20 @@ Network JsonReader::readFromString(const std::string& jsonStr) {
                     double n = elemDef["n"].get<double>();
                     link.setFlowElement(std::make_unique<PowerLawOrifice>(C, n));
                 } else if (elemType == "Fan") {
-                    double maxFlow = elemDef["maxFlow"].get<double>();
-                    double shutoffPressure = elemDef["shutoffPressure"].get<double>();
-                    link.setFlowElement(std::make_unique<Fan>(maxFlow, shutoffPressure));
+                    if (elemDef.contains("coeffs")) {
+                        auto coeffs = elemDef["coeffs"].get<std::vector<double>>();
+                        link.setFlowElement(std::make_unique<Fan>(coeffs));
+                    } else {
+                        double maxFlow = elemDef["maxFlow"].get<double>();
+                        double shutoffPressure = elemDef["shutoffPressure"].get<double>();
+                        link.setFlowElement(std::make_unique<Fan>(maxFlow, shutoffPressure));
+                    }
                 } else if (elemType == "TwoWayFlow") {
                     double Cd = elemDef["Cd"].get<double>();
                     double area = elemDef["area"].get<double>();
-                    link.setFlowElement(std::make_unique<TwoWayFlow>(Cd, area));
+                    double height = elemDef.value("height", 2.0);
+                    double width = elemDef.value("width", 0.0);
+                    link.setFlowElement(std::make_unique<TwoWayFlow>(Cd, area, height, width));
                 } else if (elemType == "Duct") {
                     double length = elemDef["length"].get<double>();
                     double diameter = elemDef["diameter"].get<double>();
@@ -150,6 +159,15 @@ Network JsonReader::readFromString(const std::string& jsonStr) {
                     double n = elemDef["n"].get<double>();
                     double efficiency = elemDef.value("efficiency", 0.9);
                     link.setFlowElement(std::make_unique<Filter>(C, n, efficiency));
+                } else if (elemType == "SelfRegulatingVent") {
+                    double targetFlow = elemDef["targetFlow"].get<double>();
+                    double pMin = elemDef.value("pMin", 1.0);
+                    double pMax = elemDef.value("pMax", 50.0);
+                    link.setFlowElement(std::make_unique<SelfRegulatingVent>(targetFlow, pMin, pMax));
+                } else if (elemType == "CheckValve") {
+                    double C = elemDef["C"].get<double>();
+                    double n = elemDef["n"].get<double>();
+                    link.setFlowElement(std::make_unique<CheckValve>(C, n));
                 }
             }
 
@@ -186,6 +204,7 @@ ModelInput JsonReader::readModelFromString(const std::string& jsonStr) {
             sp.molarMass = js.value("molarMass", 0.029);
             sp.decayRate = js.value("decayRate", 0.0);
             sp.outdoorConc = js.value("outdoorConcentration", 0.0);
+            sp.isTrace = js.value("isTrace", true);
             model.species.push_back(sp);
         }
     }
@@ -199,6 +218,21 @@ ModelInput JsonReader::readModelFromString(const std::string& jsonStr) {
             src.generationRate = jsrc.value("generationRate", 0.0);
             src.removalRate = jsrc.value("removalRate", 0.0);
             src.scheduleId = jsrc.value("scheduleId", -1);
+
+            std::string srcType = jsrc.value("type", "Constant");
+            if (srcType == "ExponentialDecay") {
+                src.type = SourceType::ExponentialDecay;
+                src.decayTimeConstant = jsrc.value("decayTimeConstant", 3600.0);
+                src.startTime = jsrc.value("startTime", 0.0);
+                src.multiplier = jsrc.value("multiplier", 1.0);
+            } else if (srcType == "PressureDriven") {
+                src.type = SourceType::PressureDriven;
+                src.pressureCoeff = jsrc.value("pressureCoeff", 0.0);
+            } else if (srcType == "CutoffConcentration") {
+                src.type = SourceType::CutoffConcentration;
+                src.cutoffConc = jsrc.value("cutoffConcentration", 0.0);
+            }
+
             model.sources.push_back(src);
         }
     }

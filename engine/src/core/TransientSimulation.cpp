@@ -232,6 +232,17 @@ void TransientSimulation::updateOccupantExposure(
             occ.initExposure(numSpecies);
         }
 
+        // Zone movement via schedule: schedule returns zone index as integer
+        if (occ.scheduleId >= 0) {
+            auto it = schedules_.find(occ.scheduleId);
+            if (it != schedules_.end()) {
+                int newZone = static_cast<int>(std::round(it->second.getValue(t)));
+                if (newZone >= 0 && newZone < (int)conc.size()) {
+                    occ.currentZoneIdx = newZone;
+                }
+            }
+        }
+
         int zoneIdx = occ.currentZoneIdx;
         if (zoneIdx >= 0 && zoneIdx < (int)conc.size()) {
             occ.updateExposure(conc[zoneIdx], t, dt);

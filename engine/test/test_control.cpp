@@ -5,6 +5,7 @@
 #include "core/Network.h"
 #include "core/Solver.h"
 #include "core/TransientSimulation.h"
+#include "core/Occupant.h"
 #include "elements/PowerLawOrifice.h"
 #include "elements/Damper.h"
 #include <cmath>
@@ -167,4 +168,54 @@ TEST(ControlIntegrationTest, DamperControlLoop) {
         // CO2 should have risen from initial (0) due to source
         EXPECT_GT(co2_end, co2_start);
     }
+}
+
+// ── Occupant Exposure Tests ──────────────────────────────────────────
+
+TEST(OccupantTest, InitExposure) {
+    Occupant occ(0, "Worker", 1, 1.2e-4);
+    occ.initExposure(2);
+    EXPECT_EQ(occ.exposure.size(), 2);
+    EXPECT_DOUBLE_EQ(occ.exposure[0].cumulativeDose, 0.0);
+    EXPECT_DOUBLE_EQ(occ.exposure[1].peakConcentration, 0.0);
+}
+
+TEST(OccupantTest, CumulativeDose) {
+    Occupant occ(0, "Worker", 1, 1.0e-4);  // 0.1 L/s breathing rate
+    occ.initExposure(1);
+
+    // Expose to 0.001 kg/m³ for 3600s (1 hour)
+    std::vector<double> conc = {0.001};
+    for (int i = 0; i < 60; ++i) {
+        occ.updateExposure(conc, i * 60.0, 60.0);
+    }
+
+    // Expected dose = breathingRate * concentration * totalTime
+    // = 1e-4 * 0.001 * 3600 = 3.6e-4 kg
+    EXPECT_NEAR(occ.exposure[0].cumulativeDose, 3.6e-4, 1e-8);
+    EXPECT_DOUBLE_EQ(occ.exposure[0].peakConcentration, 0.001);
+    EXPECT_NEAR(occ.exposure[0].totalExposureTime, 3600.0, 1e-10);
+}
+
+TEST(OccupantTest, PeakTracking) {
+    Occupant occ(0, "Worker", 1, 1.0e-4);
+    occ.initExposure(1);
+
+    occ.updateExposure({0.001}, 0.0, 60.0);
+    occ.updateExposure({0.005}, 60.0, 60.0);  // peak
+    occ.updateExposure({0.002}, 120.0, 60.0);
+
+    EXPECT_DOUBLE_EQ(occ.exposure[0].peakConcentration, 0.005);
+    EXPECT_DOUBLE_EQ(occ.exposure[0].timeAtPeak, 60.0);
+}
+
+TEST(OccupantTest, MultiSpecies) {
+    Occupant occ(0, "Worker", 1, 1.0e-4);
+    occ.initExposure(2);
+
+    std::vector<double> conc = {0.001, 0.0005};
+    occ.updateExposure(conc, 0.0, 100.0);
+
+    EXPECT_NEAR(occ.exposure[0].cumulativeDose, 1.0e-4 * 0.001 * 100.0, 1e-12);
+    EXPECT_NEAR(occ.exposure[1].cumulativeDose, 1.0e-4 * 0.0005 * 100.0, 1e-12);
 }

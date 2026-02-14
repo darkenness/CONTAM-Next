@@ -134,66 +134,72 @@ export default function TopBar() {
   };
 
   return (
-    <header className="h-10 bg-card border-b border-border flex items-center px-2 gap-0.5 shrink-0 select-none">
+    <header className="h-12 border-b border-border flex items-center px-3 gap-1 shrink-0 select-none"
+      style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(12px)' }}
+    >
       {/* Logo mark */}
-      <div className="flex items-center gap-1.5 mr-1.5 pl-1">
-        <div className="w-5 h-5 rounded bg-primary flex items-center justify-center">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <div className="flex items-center gap-2 mr-2 pl-0.5">
+        <div className="w-7 h-7 rounded-xl bg-primary flex items-center justify-center shadow-md border-b-2 border-primary/60">
+          <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
             <path d="M6 1L11 4V8L6 11L1 8V4L6 1Z" stroke="currentColor" strokeWidth="1.5" fill="none" className="text-primary-foreground"/>
             <circle cx="6" cy="6" r="1.5" fill="currentColor" className="text-primary-foreground"/>
           </svg>
         </div>
-        <span className="font-semibold text-foreground text-[13px] tracking-tight leading-none">CONTAM</span>
-        <span className="text-muted-foreground text-[10px] font-medium -ml-0.5">Next</span>
+        <div className="flex flex-col leading-none">
+          <span className="font-bold text-foreground text-sm tracking-tight">CONTAM</span>
+          <span className="text-muted-foreground text-[9px] font-medium">Next · 2.5D</span>
+        </div>
       </div>
 
-      <div className="w-px h-5 bg-border mx-1" />
+      <div className="w-px h-6 bg-border mx-1" />
 
-      {/* Run simulation */}
-      <Button onClick={handleRun} disabled={isRunning} size="sm" className="h-7 gap-1 px-2.5 text-xs font-medium">
-        <Play size={12} fill="currentColor" />
+      {/* Run simulation — chunky 2.5D button */}
+      <Button onClick={handleRun} disabled={isRunning} size="sm"
+        className="h-8 gap-1.5 px-3 text-xs font-semibold rounded-xl border-b-[3px] border-primary/50 active:border-b-0 active:translate-y-0.5 transition-all shadow-md"
+      >
+        <Play size={13} fill="currentColor" />
         {isRunning ? '计算中...' : (isTransient ? '瞬态仿真' : '稳态求解')}
       </Button>
 
       {isRunning && (
-        <div className="w-16 h-1 bg-muted rounded-full overflow-hidden ml-1">
+        <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden ml-1.5">
           <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '100%' }} />
         </div>
       )}
 
-      <div className="w-px h-5 bg-border mx-1" />
+      <div className="w-px h-6 bg-border mx-1" />
 
       {/* Edit group: Undo/Redo */}
-      <div className="flex items-center gap-0">
+      <div className="flex items-center gap-0.5">
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={() => useAppStore.temporal.getState().undo()}>
-              <Undo2 size={14} />
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={() => useAppStore.temporal.getState().undo()}>
+              <Undo2 size={15} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">撤销 <kbd className="ml-1 px-1 py-0.5 bg-muted rounded text-[10px] font-data">Ctrl+Z</kbd></TooltipContent>
+          <TooltipContent side="bottom" className="text-xs rounded-xl">撤销 <kbd className="ml-1 px-1 py-0.5 bg-muted rounded-lg text-[10px] font-data">Ctrl+Z</kbd></TooltipContent>
         </Tooltip>
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={() => useAppStore.temporal.getState().redo()}>
-              <Redo2 size={14} />
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={() => useAppStore.temporal.getState().redo()}>
+              <Redo2 size={15} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">重做 <kbd className="ml-1 px-1 py-0.5 bg-muted rounded text-[10px] font-data">Ctrl+Shift+Z</kbd></TooltipContent>
+          <TooltipContent side="bottom" className="text-xs rounded-xl">重做</TooltipContent>
         </Tooltip>
       </div>
 
-      {/* Export (shown when results exist) */}
+      {/* Export */}
       {hasResults && (
         <>
-          <div className="w-px h-5 bg-border mx-1" />
+          <div className="w-px h-6 bg-border mx-1" />
           <Tooltip delayDuration={200}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={handleExportCSV}>
-                <FileDown size={14} />
+              <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={handleExportCSV}>
+                <FileDown size={15} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">导出 CSV</TooltipContent>
+            <TooltipContent side="bottom" className="text-xs rounded-xl">导出 CSV</TooltipContent>
           </Tooltip>
         </>
       )}
@@ -201,50 +207,50 @@ export default function TopBar() {
       <div className="flex-1" />
 
       {/* Right group: Theme + File ops */}
-      <div className="flex items-center gap-0">
+      <div className="flex items-center gap-0.5">
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={toggleDark}>
-              {isDark ? <Sun size={14} /> : <Moon size={14} />}
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={toggleDark}>
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">{isDark ? '浅色模式' : '深色模式'}</TooltipContent>
+          <TooltipContent side="bottom" className="text-xs rounded-xl">{isDark ? '浅色模式' : '深色模式'}</TooltipContent>
         </Tooltip>
 
-        <div className="w-px h-5 bg-border mx-0.5" />
+        <div className="w-px h-6 bg-border mx-0.5" />
 
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={handleSave}><Save size={14} /></Button>
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={handleSave}><Save size={15} /></Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">保存</TooltipContent>
+          <TooltipContent side="bottom" className="text-xs rounded-xl">保存</TooltipContent>
         </Tooltip>
 
         <input ref={fileInputRef} type="file" accept=".json,.contam.json" onChange={handleFileChange} className="hidden" />
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={() => fileInputRef.current?.click()}><FolderOpen size={14} /></Button>
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={() => fileInputRef.current?.click()}><FolderOpen size={15} /></Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">打开</TooltipContent>
+          <TooltipContent side="bottom" className="text-xs rounded-xl">打开</TooltipContent>
         </Tooltip>
 
         <AlertDialog>
           <Tooltip delayDuration={200}>
             <TooltipTrigger asChild>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"><Trash2 size={14} /></Button>
+                <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl hover:bg-destructive/10 hover:text-destructive"><Trash2 size={15} /></Button>
               </AlertDialogTrigger>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">清空</TooltipContent>
+            <TooltipContent side="bottom" className="text-xs rounded-xl">清空</TooltipContent>
           </Tooltip>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-sm rounded-2xl">
             <AlertDialogHeader>
-              <AlertDialogTitle>确认清空所有数据</AlertDialogTitle>
-              <AlertDialogDescription>所有墙壁、区域、气流路径、污染物和排程数据将被永久删除，此操作无法撤销。</AlertDialogDescription>
+              <AlertDialogTitle className="text-base">确认清空所有数据</AlertDialogTitle>
+              <AlertDialogDescription className="text-sm">所有墙壁、区域、气流路径、污染物和排程数据将被永久删除，此操作无法撤销。</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction onClick={clearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确认清空</AlertDialogAction>
+              <AlertDialogCancel className="rounded-xl">取消</AlertDialogCancel>
+              <AlertDialogAction onClick={clearAll} className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90">确认清空</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

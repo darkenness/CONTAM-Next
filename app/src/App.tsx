@@ -112,7 +112,7 @@ function App() {
         {showWelcome ? (
           <WelcomePage onStart={() => setShowWelcome(false)} />
         ) : (
-          <div className="flex flex-1 min-h-0">
+          <div className="relative flex flex-1 min-h-0">
             <VerticalToolbar />
             <PanelGroup orientation="horizontal">
               {/* Center: Canvas + Bottom Results */}

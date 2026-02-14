@@ -35,80 +35,88 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ── Light Theme: Warm Slate + Teal ───────────────────────────────── */
+/* ── Light Theme: Pastel Micro-cartoon ────────────────────────────── */
 :root {
-  --radius: 0.375rem;
-  --background: #f8f9fb;
-  --foreground: #1a1d23;
+  --radius: 0.75rem;
+  --background: #f5f3f0;
+  --foreground: #2d2b29;
   --card: #ffffff;
-  --card-foreground: #1a1d23;
+  --card-foreground: #2d2b29;
   --popover: #ffffff;
-  --popover-foreground: #1a1d23;
-  --primary: #0d9488;
-  --primary-foreground: #f0fdfa;
-  --secondary: #f0f1f3;
-  --secondary-foreground: #2d3139;
-  --muted: #f0f1f3;
-  --muted-foreground: #6b7280;
-  --accent: #ecfdf5;
-  --accent-foreground: #064e3b;
-  --destructive: #dc2626;
-  --destructive-foreground: #fef2f2;
-  --border: #e0e2e7;
-  --input: #e0e2e7;
-  --ring: #0d9488;
-  --sidebar: #f4f5f7;
-  --sidebar-foreground: #374151;
-  --sidebar-accent: #e5e7eb;
-  --sidebar-accent-foreground: #1a1d23;
-  --sidebar-border: #e0e2e7;
-  /* custom engineering tokens */
+  --popover-foreground: #2d2b29;
+  --primary: #60a5fa;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f0ee;
+  --secondary-foreground: #3d3b38;
+  --muted: #eeece9;
+  --muted-foreground: #8a8784;
+  --accent: #d1fae5;
+  --accent-foreground: #065f46;
+  --destructive: #fb7185;
+  --destructive-foreground: #fff1f2;
+  --border: #e2dfda;
+  --input: #e2dfda;
+  --ring: #60a5fa;
+  --sidebar: #f8f6f3;
+  --sidebar-foreground: #4b4946;
+  --sidebar-accent: #eeece9;
+  --sidebar-accent-foreground: #2d2b29;
+  --sidebar-border: #e2dfda;
+  /* micro-cartoon tokens */
   --surface-elevated: #ffffff;
-  --surface-sunken: #f0f1f3;
-  --data-positive: #059669;
-  --data-negative: #dc2626;
-  --data-neutral: #6b7280;
-  --data-highlight: #0d9488;
-  --toolbar-bg: #fafbfc;
-  --toolbar-active: #0d9488;
-  --toolbar-active-bg: #ecfdf5;
+  --surface-sunken: #eeece9;
+  --data-positive: #34d399;
+  --data-negative: #fb7185;
+  --data-neutral: #8a8784;
+  --data-highlight: #38bdf8;
+  --toolbar-bg: rgba(255,255,255,0.72);
+  --toolbar-active: #60a5fa;
+  --toolbar-active-bg: #eff6ff;
+  --glass-bg: rgba(255,255,255,0.65);
+  --glass-border: rgba(255,255,255,0.45);
+  --shadow-soft: 0 4px 24px -2px rgba(0,0,0,0.06);
+  --shadow-card: 0 2px 12px -1px rgba(0,0,0,0.05);
 }
 
-/* ── Dark Theme: Deep Charcoal + Teal ─────────────────────────────── */
+/* ── Dark Theme: Soft Charcoal + Blue ─────────────────────────────── */
 .dark {
-  --background: #141618;
-  --foreground: #e4e5e9;
-  --card: #1c1e22;
-  --card-foreground: #e4e5e9;
-  --popover: #22252a;
-  --popover-foreground: #e4e5e9;
-  --primary: #14b8a6;
-  --primary-foreground: #042f2e;
-  --secondary: #262a30;
-  --secondary-foreground: #d1d5db;
-  --muted: #262a30;
-  --muted-foreground: #8b8f98;
-  --accent: #1a2e2b;
-  --accent-foreground: #5eead4;
-  --destructive: #ef4444;
-  --destructive-foreground: #fef2f2;
-  --border: #2e3238;
-  --input: #2e3238;
-  --ring: #14b8a6;
-  --sidebar: #191b1f;
-  --sidebar-foreground: #9ca3af;
-  --sidebar-accent: #262a30;
-  --sidebar-accent-foreground: #e4e5e9;
-  --sidebar-border: #2e3238;
-  --surface-elevated: #22252a;
-  --surface-sunken: #18191d;
-  --data-positive: #34d399;
-  --data-negative: #f87171;
-  --data-neutral: #8b8f98;
-  --data-highlight: #2dd4bf;
-  --toolbar-bg: #191b1f;
-  --toolbar-active: #14b8a6;
-  --toolbar-active-bg: #1a2e2b;
+  --background: #1a1b1e;
+  --foreground: #e8e6e3;
+  --card: #242528;
+  --card-foreground: #e8e6e3;
+  --popover: #2a2b2f;
+  --popover-foreground: #e8e6e3;
+  --primary: #93c5fd;
+  --primary-foreground: #1e293b;
+  --secondary: #2e2f33;
+  --secondary-foreground: #d4d2cf;
+  --muted: #2e2f33;
+  --muted-foreground: #9b9893;
+  --accent: #1a3a2e;
+  --accent-foreground: #6ee7b7;
+  --destructive: #fb7185;
+  --destructive-foreground: #fff1f2;
+  --border: #383a3e;
+  --input: #383a3e;
+  --ring: #93c5fd;
+  --sidebar: #1e1f22;
+  --sidebar-foreground: #a3a09c;
+  --sidebar-accent: #2e2f33;
+  --sidebar-accent-foreground: #e8e6e3;
+  --sidebar-border: #383a3e;
+  --surface-elevated: #2a2b2f;
+  --surface-sunken: #1a1b1e;
+  --data-positive: #6ee7b7;
+  --data-negative: #fda4af;
+  --data-neutral: #9b9893;
+  --data-highlight: #93c5fd;
+  --toolbar-bg: rgba(30,31,34,0.85);
+  --toolbar-active: #93c5fd;
+  --toolbar-active-bg: #1e293b;
+  --glass-bg: rgba(36,37,40,0.72);
+  --glass-border: rgba(56,58,62,0.6);
+  --shadow-soft: 0 4px 24px -2px rgba(0,0,0,0.3);
+  --shadow-card: 0 2px 12px -1px rgba(0,0,0,0.25);
 }
 
 /* ── Base Resets ──────────────────────────────────────────────────── */

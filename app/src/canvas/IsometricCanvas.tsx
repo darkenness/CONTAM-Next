@@ -27,7 +27,7 @@ function SceneContent() {
     wallPreview, setCursorWorld, setCursorGrid,
     setHoveredEdge, setHoveredFace,
     selectedEdgeId, selectedFaceId, selectedPlacementId,
-    hoveredEdgeId, hoveredFaceId,
+    hoveredEdgeId, hoveredFaceId, snapVertexId,
   } = useCanvasStore();
 
   const story = useCanvasStore(s => s.getActiveStory());
@@ -153,6 +153,18 @@ function SceneContent() {
         />
       )}
 
+      {/* Snap vertex indicator */}
+      {snapVertexId && toolMode === 'wall' && (() => {
+        const sv = geo.vertices.find(v => v.id === snapVertexId);
+        if (!sv) return null;
+        return (
+          <mesh position={[sv.x, 0.05, sv.y]}>
+            <sphereGeometry args={[0.15, 16, 16]} />
+            <meshBasicMaterial color="#14b8a6" transparent opacity={0.85} />
+          </mesh>
+        );
+      })()}
+
       {/* Results overlay (only in results mode) */}
       <FlowArrows />
       <ZoneDataFloats />
@@ -195,21 +207,37 @@ function ThemeWatcher() {
 }
 
 /**
- * Camera controller for pan/zoom
+ * Camera controller: scroll=zoom, middle-drag=orbit (Y axis), Shift+middle=pan
  */
 function CameraController() {
   const { camera, gl } = useThree();
   const cameraZoom = useCanvasStore(s => s.cameraZoom);
   const setCameraZoom = useCanvasStore(s => s.setCameraZoom);
+  const cameraAngle = useCanvasStore(s => s.cameraAngle);
+  const setCameraAngle = useCanvasStore(s => s.setCameraAngle);
   const isDragging = useRef(false);
+  const isPanning = useRef(false);
   const lastPointer = useRef({ x: 0, y: 0 });
+  const lookTarget = useRef(new THREE.Vector3(0, 0, 0));
 
+  // Orbit radius and elevation angle (fixed isometric tilt)
+  const ORBIT_RADIUS = 28;
+  const ELEVATION = Math.PI / 6; // 30° tilt from horizontal
+
+  // Update camera position from angle
   useEffect(() => {
     if (camera instanceof THREE.OrthographicCamera) {
       camera.zoom = cameraZoom;
       camera.updateProjectionMatrix();
     }
-  }, [camera, cameraZoom]);
+    const t = lookTarget.current;
+    camera.position.set(
+      t.x + ORBIT_RADIUS * Math.cos(ELEVATION) * Math.sin(cameraAngle),
+      t.y + ORBIT_RADIUS * Math.sin(ELEVATION),
+      t.z + ORBIT_RADIUS * Math.cos(ELEVATION) * Math.cos(cameraAngle),
+    );
+    camera.lookAt(t);
+  }, [camera, cameraZoom, cameraAngle]);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -222,29 +250,49 @@ function CameraController() {
     };
 
     const onMouseDown = (e: MouseEvent) => {
-      if (e.button === 1) { // middle button
-        isDragging.current = true;
+      if (e.button === 1) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          isPanning.current = true;
+        } else {
+          isDragging.current = true;
+        }
         lastPointer.current = { x: e.clientX, y: e.clientY };
-        canvas.style.cursor = 'grabbing';
+        canvas.style.cursor = isDragging.current ? 'grab' : 'move';
       }
     };
 
     const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current) return;
+      if (!isDragging.current && !isPanning.current) return;
       const dx = e.clientX - lastPointer.current.x;
       const dy = e.clientY - lastPointer.current.y;
       lastPointer.current = { x: e.clientX, y: e.clientY };
 
-      // Pan in isometric space
-      const panSpeed = 0.05 / (cameraZoom / 50);
-      camera.position.x -= (dx * Math.cos(Math.PI / 4) + dy * Math.sin(Math.PI / 4)) * panSpeed;
-      camera.position.z -= (-dx * Math.sin(Math.PI / 4) + dy * Math.cos(Math.PI / 4)) * panSpeed;
-      camera.position.y -= dy * panSpeed * 0.5;
+      if (isDragging.current) {
+        // Orbit: rotate cameraAngle around Y axis
+        const newAngle = cameraAngle - dx * 0.008;
+        setCameraAngle(newAngle);
+      } else if (isPanning.current) {
+        // Pan in screen-relative direction
+        const panSpeed = 0.05 / (cameraZoom / 50);
+        const angle = cameraAngle;
+        lookTarget.current.x -= (dx * Math.cos(angle) + dy * Math.sin(angle)) * panSpeed;
+        lookTarget.current.z -= (-dx * Math.sin(angle) + dy * Math.cos(angle)) * panSpeed;
+        // Force camera update
+        const t = lookTarget.current;
+        camera.position.set(
+          t.x + ORBIT_RADIUS * Math.cos(ELEVATION) * Math.sin(angle),
+          t.y + ORBIT_RADIUS * Math.sin(ELEVATION),
+          t.z + ORBIT_RADIUS * Math.cos(ELEVATION) * Math.cos(angle),
+        );
+        camera.lookAt(t);
+      }
     };
 
     const onMouseUp = (e: MouseEvent) => {
       if (e.button === 1) {
         isDragging.current = false;
+        isPanning.current = false;
         canvas.style.cursor = '';
       }
     };
@@ -260,7 +308,7 @@ function CameraController() {
       canvas.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mouseup', onMouseUp);
     };
-  }, [gl, camera, cameraZoom, setCameraZoom]);
+  }, [gl, camera, cameraZoom, setCameraZoom, cameraAngle, setCameraAngle]);
 
   return null;
 }
@@ -284,12 +332,37 @@ function PointerEventBridge() {
     return { x: intersection.x, y: intersection.z };
   }, [camera, raycaster, pointer]);
 
-  // Update wall preview on every frame when drawing
+  // Update wall preview + vertex snap detection on every frame
   useFrame(() => {
     const store = useCanvasStore.getState();
-    if (store.toolMode === 'wall' && store.wallPreview.active) {
-      const pt = getGridPoint();
-      store.updateWallPreview(pt.x, pt.y);
+    if (store.toolMode !== 'wall') {
+      if (store.snapVertexId) store.setSnapVertexId(null);
+      return;
+    }
+
+    const pt = getGridPoint();
+
+    // Find nearest existing vertex for snap feedback
+    const story = store.getActiveStory();
+    const verts = story.geometry.vertices;
+    const SNAP_THRESHOLD = 0.5; // meters
+    let nearestId: string | null = null;
+    let nearestDist = SNAP_THRESHOLD;
+    let snapX = pt.x, snapY = pt.y;
+
+    for (const v of verts) {
+      const d = Math.sqrt((v.x - pt.x) ** 2 + (v.y - pt.y) ** 2);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestId = v.id;
+        snapX = v.x;
+        snapY = v.y;
+      }
+    }
+    store.setSnapVertexId(nearestId);
+
+    if (store.wallPreview.active) {
+      store.updateWallPreview(nearestId ? snapX : pt.x, nearestId ? snapY : pt.y);
     }
   });
 
@@ -302,10 +375,24 @@ function PointerEventBridge() {
       const store = useCanvasStore.getState();
       const gridPt = getGridPoint();
 
+      // Compute snap-aware point for wall tool
+      const getSnapPoint = () => {
+        const story = store.getActiveStory();
+        const verts = story.geometry.vertices;
+        let best = gridPt;
+        let bestDist = 0.5;
+        for (const v of verts) {
+          const d = Math.sqrt((v.x - gridPt.x) ** 2 + (v.y - gridPt.y) ** 2);
+          if (d < bestDist) { bestDist = d; best = { x: v.x, y: v.y }; }
+        }
+        return best;
+      };
+
       switch (store.toolMode) {
         case 'wall':
           if (!store.wallPreview.active) {
-            store.startWallPreview(gridPt.x, gridPt.y);
+            const sp = getSnapPoint();
+            store.startWallPreview(sp.x, sp.y);
           } else {
             store.confirmWall();
           }
@@ -381,6 +468,29 @@ function PointerEventBridge() {
 }
 
 /**
+ * Wall opacity slider overlay
+ */
+function WallOpacitySlider() {
+  const wallOpacity = useCanvasStore(s => s.wallOpacity);
+  const setWallOpacity = useCanvasStore(s => s.setWallOpacity);
+  return (
+    <div className="absolute bottom-14 right-3 flex items-center gap-2 bg-card/90 backdrop-blur-sm border border-border rounded-xl px-3 py-1.5 shadow-lg">
+      <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">墙透明度</span>
+      <input
+        type="range"
+        min="0.05"
+        max="1"
+        step="0.05"
+        value={wallOpacity}
+        onChange={e => setWallOpacity(parseFloat(e.target.value))}
+        className="w-20 h-1 accent-primary"
+      />
+      <span className="text-[10px] font-data text-muted-foreground w-7 text-right">{Math.round(wallOpacity * 100)}%</span>
+    </div>
+  );
+}
+
+/**
  * Main IsometricCanvas component — replaces the old Konva SketchPad
  */
 export default function IsometricCanvas() {
@@ -418,6 +528,7 @@ export default function IsometricCanvas() {
       <FloorSwitcher />
       <CanvasContextMenu />
       <TimeStepper />
+      <WallOpacitySlider />
     </div>
   );
 }

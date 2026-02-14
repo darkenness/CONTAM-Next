@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import type { GeoEdge, Geometry } from '../../model/geometry';
 import { getEdgeEndpoints } from '../../model/geometry';
+import { useCanvasStore } from '../../store/useCanvasStore';
 
 interface WallMeshProps {
   edge: GeoEdge;
@@ -14,6 +15,7 @@ interface WallMeshProps {
 }
 
 export function WallMesh({ edge, geometry, isSelected, isHovered, onPointerEnter, onPointerLeave, onClick }: WallMeshProps) {
+  const wallOpacity = useCanvasStore(s => s.wallOpacity);
   const endpoints = getEdgeEndpoints(geometry, edge);
   if (!endpoints) return null;
 
@@ -61,6 +63,9 @@ export function WallMesh({ edge, geometry, isSelected, isHovered, onPointerEnter
       <meshToonMaterial
         color={finalColor}
         side={THREE.DoubleSide}
+        transparent={wallOpacity < 1}
+        opacity={wallOpacity}
+        depthWrite={wallOpacity >= 0.9}
       />
       {/* Selection outline */}
       {isSelected && (

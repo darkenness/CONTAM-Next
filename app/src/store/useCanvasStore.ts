@@ -59,6 +59,13 @@ export interface CanvasState extends SelectionState, HoverState {
 
   // Camera
   cameraZoom: number;
+  cameraAngle: number;      // radians around Y axis for orbit
+
+  // Display settings
+  wallOpacity: number;       // 0..1 wall transparency
+
+  // Snap feedback
+  snapVertexId: string | null;  // currently snapped vertex for visual feedback
 
   // Actions - Mode
   setAppMode: (mode: AppMode) => void;
@@ -110,6 +117,11 @@ export interface CanvasState extends SelectionState, HoverState {
 
   // Actions - Camera
   setCameraZoom: (zoom: number) => void;
+  setCameraAngle: (angle: number) => void;
+
+  // Actions - Display
+  setWallOpacity: (opacity: number) => void;
+  setSnapVertexId: (id: string | null) => void;
 
   // Actions - Background image
   setBackgroundImage: (storyId: string, image: { url: string; opacity: number; scalePixelsPerMeter: number; offsetX: number; offsetY: number } | undefined) => void;
@@ -163,6 +175,11 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
 
   // Camera
   cameraZoom: 50,
+  cameraAngle: Math.PI / 4,  // 45° default isometric
+
+  // Display
+  wallOpacity: 1.0,
+  snapVertexId: null,
 
   // ── Mode actions ──
   setAppMode: (mode) => set({ appMode: mode }),
@@ -259,7 +276,7 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
 
     set({
       stories,
-      wallPreview: { startX: wp.endX, startY: wp.endY, endX: wp.endX, endY: wp.endY, active: true },
+      wallPreview: { startX: 0, startY: 0, endX: 0, endY: 0, active: false },
     });
   },
 
@@ -459,6 +476,11 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
 
   // ── Camera ──
   setCameraZoom: (zoom) => set({ cameraZoom: zoom }),
+  setCameraAngle: (angle) => set({ cameraAngle: angle }),
+
+  // ── Display ──
+  setWallOpacity: (opacity) => set({ wallOpacity: Math.max(0.05, Math.min(1, opacity)) }),
+  setSnapVertexId: (id) => set({ snapVertexId: id }),
 
   // ── Background image ──
   setBackgroundImage: (storyId, image) => set((state) => ({

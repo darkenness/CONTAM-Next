@@ -122,6 +122,8 @@ function LinkProperties() {
                 Filter: { type: 'Filter', C: 0.002, n: 0.65, efficiency: 0.9 },
                 SelfRegulatingVent: { type: 'SelfRegulatingVent', targetFlow: 0.01, pMin: 2.0, pMax: 50.0 },
                 CheckValve: { type: 'CheckValve', C: 0.001, n: 0.65 },
+                SupplyDiffuser: { type: 'SupplyDiffuser', C: 0.003, n: 0.5 },
+                ReturnGrille: { type: 'ReturnGrille', C: 0.003, n: 0.5 },
               };
               updateLink(link.id, { element: defaults[newType] ?? { type: newType } });
             }}
@@ -135,6 +137,8 @@ function LinkProperties() {
             <option value="Filter">过滤器</option>
             <option value="SelfRegulatingVent">自调节通风口</option>
             <option value="CheckValve">单向阀</option>
+            <option value="SupplyDiffuser">送风口</option>
+            <option value="ReturnGrille">回风口</option>
           </select>
         </label>
 

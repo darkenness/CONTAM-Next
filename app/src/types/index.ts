@@ -17,7 +17,7 @@ export interface ZoneNode {
 }
 
 // ── Flow Element ─────────────────────────────────────────────────────
-export type FlowElementType = 'PowerLawOrifice' | 'TwoWayFlow' | 'Fan' | 'Duct' | 'Damper' | 'Filter' | 'SelfRegulatingVent' | 'CheckValve';
+export type FlowElementType = 'PowerLawOrifice' | 'TwoWayFlow' | 'Fan' | 'Duct' | 'Damper' | 'Filter' | 'SelfRegulatingVent' | 'CheckValve' | 'SupplyDiffuser' | 'ReturnGrille';
 
 export interface FlowElementDef {
   type: FlowElementType;

@@ -7,8 +7,8 @@ on:
     branches: [master, main]
 
 jobs:
-  # ── C++ Engine Build & Test ──────────────────────────────────────
-  engine:
+  # ── C++ Engine Build & Test (Windows) ────────────────────────────
+  engine-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,11 +22,58 @@ jobs:
       - name: Run C++ Tests
         run: engine/build/Release/contam_tests.exe --gtest_output=xml:engine/build/test-results.xml
 
+      - name: Run Validation Case 01
+        run: engine/build/Release/contam_engine.exe -i validation/case01_3room/input.json -o validation/case01_3room/ci_output.json -v
+
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cpp-test-results
+          name: cpp-test-results-windows
+          path: engine/build/test-results.xml
+
+  # ── C++ Engine Build & Test (Linux) ──────────────────────────────
+  engine-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -S engine -B engine/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Engine
+        run: cmake --build engine/build --config Release -j$(nproc)
+
+      - name: Run C++ Tests
+        run: engine/build/contam_tests --gtest_output=xml:engine/build/test-results.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-test-results-linux
+          path: engine/build/test-results.xml
+
+  # ── C++ Engine Build & Test (macOS) ──────────────────────────────
+  engine-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -S engine -B engine/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Engine
+        run: cmake --build engine/build --config Release -j$(sysctl -n hw.ncpu)
+
+      - name: Run C++ Tests
+        run: engine/build/contam_tests --gtest_output=xml:engine/build/test-results.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-test-results-macos
           path: engine/build/test-results.xml
 
   # ── Frontend TypeScript Check ────────────────────────────────────

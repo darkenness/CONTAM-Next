@@ -243,9 +243,15 @@ export default function SketchPad() {
             const to = getNodeCenter(link.to);
             const isSelected = useAppStore.getState().selectedLinkId === link.id;
             const linkResult = result?.links.find((r) => r.id === link.id);
+            // HVAC color coding by element type (when no result yet)
+            const elemColors: Record<string, string> = {
+              Fan: '#2563eb', Duct: '#0d9488', Filter: '#7c3aed',
+              Damper: '#d97706', SelfRegulatingVent: '#06b6d4', CheckValve: '#e11d48',
+            };
+            const baseColor = elemColors[link.element.type] ?? COLORS.link;
             const flowColor = linkResult
               ? (linkResult.massFlow > 0 ? COLORS.flowPositive : COLORS.flowNegative)
-              : COLORS.link;
+              : baseColor;
 
             const elemLabel: Record<string, string> = {
               PowerLawOrifice: '孔口',

@@ -91,18 +91,22 @@ contam-next/
 
 ## Features
 
-### C++ Engine (100/100 tests)
-- **求解器**: Newton-Raphson + 信赖域 + 亚松弛 + PCG (BiCGSTAB)
-- **6 种气流元件**: 幂律孔口, 大开口双向流, 风扇(含多项式曲线), 风管(Darcy-Weisbach), 阀门, 过滤器
-- **瞬态求解**: 隐式欧拉污染物传输 + 气流-污染物耦合
-- **控制系统**: Sensor → PI Controller (死区+抗饱和) → Actuator → FlowElement
-- **人员暴露**: 累积吸入剂量 + 峰值浓度 + 多物种跟踪
+### C++ Engine (130/130 tests)
+- **求解器**: Newton-Raphson + 信赖域 + 亚松弛 + PCG (BiCGSTAB) + RCM节点重排序
+- **8 种气流元件**: 幂律孔口, Brown-Solvason双向流, 风扇(含多项式曲线), 风管(Darcy-Weisbach), 阀门, 过滤器, 自调节通风口, 单向阀
+- **4 种源类型**: 恒定源, 指数衰减源, 压力驱动源, 浓度切断源
+- **瞫态求解**: 隐式欧拉 + 耦合多物种求解器 + 非痕量密度反馈耦合
+- **控制系统**: Sensor → CONTAM标准增量式PI控制器 (死区+硬截断) → Actuator
+- **化学动力学**: 一阶反应矩阵 (ChemicalKinetics) + 耦合求解器
+- **高级源汇**: Axley边界层扩散(可逆吸附), 气溶胶沉积/重悬浮, 超级过滤器(级联+载灰量)
+- **人员暴露**: 累积吸入剂量 + 峰值浓度 + 多物种 + 区域移动时间表
 
 ### Frontend (tsc clean)
 - **中文 UI**: 工具栏, 属性面板, 结果视图, 状态栏
 - **画布**: Konva 拖拽编辑, 缩放/平移, 网格对齐
 - **Undo/Redo**: zundo 时间旅行中间件 (Ctrl+Z/Ctrl+Shift+Z)
-- **6 种元件编辑器**: 切换类型自动填充默认参数
+- **8 种元件编辑器**: 切换类型自动填充默认参数
+- **4 种源类型选择器**: 恒定/指数衰减/压力驱动/浓度切断
 - **排程编辑器**: 可视化折线图 + 预设模板 (工作日/24h/夜间)
 - **控制面板**: 传感器/控制器/执行器 CRUD + PI 参数
 - **ECharts**: 瞬态浓度 + 压力时序图
@@ -129,3 +133,5 @@ contam-next/
 - ✅ Sprint 4: Occupant exposure + Fan polynomial + PCG solver + JSON Schema v2.0 + 用户手册 (100 tests)
 - ✅ Sprint 5: ControlPanel UI + progress bar
 - ✅ Sprint 6: CI/CD (GitHub Actions)
+- ✅ 算法修正: CONTAM标准增量式PI + Brown-Solvason双向流
+- ✅ 高级功能: ChemKinetics + AxleyBLD + Aerosol + SuperFilter + RCM + SelfRegVent + CheckValve + 4源类型 (**130 tests**)

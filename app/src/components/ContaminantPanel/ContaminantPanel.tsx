@@ -16,6 +16,14 @@ function InputField({ label, value, onChange, unit, type = 'text', step }: {
   );
 }
 
+const POLLUTANT_TEMPLATES: { name: string; molarMass: number; decayRate: number; outdoorConc: number; label: string }[] = [
+  { name: 'CO',   molarMass: 0.028, decayRate: 0,      outdoorConc: 0,       label: '一氧化碳' },
+  { name: 'CO₂',  molarMass: 0.044, decayRate: 0,      outdoorConc: 7.2e-4,  label: '二氧化碳 (400ppm)' },
+  { name: 'HCHO', molarMass: 0.030, decayRate: 1.1e-5, outdoorConc: 0,       label: '甲醛' },
+  { name: 'PM2.5',molarMass: 0,     decayRate: 0,      outdoorConc: 3.5e-5,  label: '颗粒物 (35μg/m³)' },
+  { name: 'Rn',   molarMass: 0.222, decayRate: 2.1e-6, outdoorConc: 0,       label: '氡' },
+];
+
 function SpeciesSection() {
   const { species, addSpecies, removeSpecies, updateSpecies } = useAppStore();
 
@@ -30,6 +38,17 @@ function SpeciesSection() {
     });
   };
 
+  const handleAddTemplate = (tpl: typeof POLLUTANT_TEMPLATES[0]) => {
+    const nextId = species.length > 0 ? Math.max(...species.map((s) => s.id)) + 1 : 0;
+    addSpecies({
+      id: nextId,
+      name: tpl.name,
+      molarMass: tpl.molarMass,
+      decayRate: tpl.decayRate,
+      outdoorConcentration: tpl.outdoorConc,
+    });
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -40,8 +59,22 @@ function SpeciesSection() {
         </button>
       </div>
 
+      {/* Quick-add templates */}
+      <div className="flex flex-wrap gap-1">
+        {POLLUTANT_TEMPLATES.map((tpl) => (
+          <button
+            key={tpl.name}
+            onClick={() => handleAddTemplate(tpl)}
+            title={tpl.label}
+            className="px-1.5 py-0.5 text-[10px] bg-purple-50 hover:bg-purple-100 text-purple-700 rounded border border-purple-100 transition-colors"
+          >
+            + {tpl.name}
+          </button>
+        ))}
+      </div>
+
       {species.length === 0 && (
-        <p className="text-[10px] text-slate-400 italic">尚未添加污染物。点击 + 添加。</p>
+        <p className="text-[10px] text-slate-400 italic">点击上方按钮快速添加常见污染物，或点击 + 自定义添加。</p>
       )}
 
       {species.map((sp) => (

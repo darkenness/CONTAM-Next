@@ -81,20 +81,20 @@ export default function StatusBar() {
   const elemSummary = Object.entries(elemCounts).map(([t, c]) => `${elemLabels[t] ?? t}×${c}`).join(' ');
 
   return (
-    <footer className="h-7 bg-slate-50 border-t border-slate-200 flex items-center px-3 gap-4 text-[10px] text-slate-500 shrink-0 select-none">
+    <footer className="h-7 bg-muted/50 border-t border-border flex items-center px-3 gap-4 text-[11px] text-muted-foreground shrink-0 select-none">
       <span>
-        当前工具: <strong className="text-slate-700">{TOOL_NAMES[toolMode]}</strong>
+        工具: <strong className="text-foreground">{TOOL_NAMES[toolMode]}</strong>
       </span>
-      <div className="w-px h-3.5 bg-slate-200" />
-      <span>房间: <strong className="text-slate-700">{roomCount}</strong></span>
-      <span>室外: <strong className="text-slate-700">{ambientCount}</strong></span>
-      <span>路径: <strong className="text-slate-700">{links.length}</strong>{elemSummary && <span className="text-slate-400 ml-0.5">({elemSummary})</span>}</span>
+      <div className="w-px h-3.5 bg-border" />
+      <span>房间: <strong className="text-foreground">{roomCount}</strong></span>
+      <span>室外: <strong className="text-foreground">{ambientCount}</strong></span>
+      <span>路径: <strong className="text-foreground">{links.length}</strong>{elemSummary && <span className="text-muted-foreground/60 ml-0.5">({elemSummary})</span>}</span>
       {species.length > 0 && <span>污染物: <strong className="text-purple-600">{species.length}</strong></span>}
 
       {(selectedNodeId !== null || selectedLinkId !== null) && (
         <>
-          <div className="w-px h-3.5 bg-slate-200" />
-          <span className="text-blue-600">
+          <div className="w-px h-3.5 bg-border" />
+          <span className="text-primary">
             已选中: {selectedNodeId !== null
               ? nodes.find((n) => n.id === selectedNodeId)?.name ?? `节点 #${selectedNodeId}`
               : `路径 #${selectedLinkId}`}
@@ -104,8 +104,8 @@ export default function StatusBar() {
 
       <div className="flex-1" />
 
-      <span className="text-slate-400">
-        快捷键: {Object.entries(SHORTCUTS).map(([k, v]) => `${k}=${v}`).join('  ')}
+      <span className="text-muted-foreground/60">
+        {Object.entries(SHORTCUTS).map(([k, v]) => `${k}=${v}`).join('  ')}
       </span>
     </footer>
   );

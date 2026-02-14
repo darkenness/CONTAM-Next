@@ -37,12 +37,30 @@ function GridLines({ width, height }: { width: number; height: number }) {
   return <>{lines}</>;
 }
 
-function RoomShape({ node, isSelected, result }: { node: ZoneNode; isSelected: boolean; result: SimulationResult | null }) {
+function concToColor(value: number, maxConc: number): string | null {
+  if (maxConc <= 0 || value <= 0) return null;
+  const ratio = Math.min(value / maxConc, 1.0);
+  // Green(safe) → Yellow(moderate) → Red(high)
+  const r = Math.round(ratio < 0.5 ? ratio * 2 * 255 : 255);
+  const g = Math.round(ratio < 0.5 ? 255 : (1 - (ratio - 0.5) * 2) * 255);
+  const b = 0;
+  const alpha = 0.3 + ratio * 0.5;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function RoomShape({ node, isSelected, result, heatmapColor, sourceCount }: {
+  node: ZoneNode; isSelected: boolean; result: SimulationResult | null;
+  heatmapColor?: string | null; sourceCount?: number;
+}) {
   const { selectNode, updateNode, toolMode } = useAppStore();
   const isAmbient = node.type === 'ambient';
 
   const nodeResult = result?.nodes.find((r: { id: number }) => r.id === node.id);
   const pressureText = nodeResult ? `${nodeResult.pressure.toFixed(2)} Pa` : '';
+
+  const fillColor = heatmapColor
+    ? heatmapColor
+    : isAmbient ? COLORS.ambient : (isSelected ? COLORS.roomSelected : COLORS.room);
 
   return (
     <Group
@@ -65,7 +83,7 @@ function RoomShape({ node, isSelected, result }: { node: ZoneNode; isSelected: b
       <Rect
         width={node.width}
         height={node.height}
-        fill={isAmbient ? COLORS.ambient : (isSelected ? COLORS.roomSelected : COLORS.room)}
+        fill={fillColor}
         stroke={isAmbient ? COLORS.ambientBorder : COLORS.roomBorder}
         strokeWidth={isSelected ? 2.5 : 1.5}
         cornerRadius={8}
@@ -106,6 +124,13 @@ function RoomShape({ node, isSelected, result }: { node: ZoneNode; isSelected: b
           fill={COLORS.pressure}
           align="center"
         />
+      )}
+      {/* Source indicator */}
+      {(sourceCount ?? 0) > 0 && (
+        <Circle x={node.width - 8} y={8} radius={6} fill="#f97316" opacity={0.85} />
+      )}
+      {(sourceCount ?? 0) > 0 && (
+        <Text x={node.width - 12} y={4} text="S" fontSize={8} fontStyle="bold" fill="white" />
       )}
     </Group>
   );
@@ -371,6 +396,7 @@ export default function SketchPad() {
                 node={node}
                 isSelected={selectedNodeId === node.id}
                 result={result}
+                sourceCount={sourcesByZone.get(node.id) ?? 0}
               />
             </Group>
           ))}

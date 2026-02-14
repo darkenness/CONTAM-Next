@@ -15,74 +15,82 @@ using namespace contam;
 
 // ── Controller Unit Tests ────────────────────────────────────────────
 
-TEST(ControllerTest, ProportionalOnly) {
+TEST(ControllerTest, IncrementalPI_ProportionalOnly) {
     Controller ctrl(0, "P-ctrl", 0, 0, 100.0, 1.0, 0.0);
-    // setpoint=100, Kp=1, Ki=0
-    // sensor=80 → error=20 → output = 1*20 = 20, clamped to [0,1] → 1.0
+    // setpoint=100, Kp=1, Ki=0, initial output=0, prevError=0
+    // Step 1: sensor=80, error=20
+    //   increment = 1.0*(20-0) + 0*(20+0) = 20
+    //   rawOutput = 0 + 20 = 20, clamped to 1.0
     double out = ctrl.update(80.0, 1.0);
-    EXPECT_DOUBLE_EQ(out, 1.0);  // saturated
-
-    // sensor=99 → error=1 → output = 1*1 = 1.0
-    ctrl.reset();
-    out = ctrl.update(99.0, 1.0);
     EXPECT_DOUBLE_EQ(out, 1.0);
 
-    // sensor=100.5 → error=-0.5 → output = -0.5, clamped to 0
-    ctrl.reset();
-    out = ctrl.update(100.5, 1.0);
-    EXPECT_DOUBLE_EQ(out, 0.0);
+    // Step 2: sensor=80 again, error=20, prevError=20
+    //   increment = 1.0*(20-20) + 0*(20+20) = 0
+    //   rawOutput = 1.0 + 0 = 1.0
+    out = ctrl.update(80.0, 1.0);
+    EXPECT_DOUBLE_EQ(out, 1.0);
 }
 
-TEST(ControllerTest, PIController) {
+TEST(ControllerTest, IncrementalPI_WithIntegral) {
     Controller ctrl(0, "PI-ctrl", 0, 0, 1.0, 0.5, 0.1);
     // setpoint=1.0, Kp=0.5, Ki=0.1
+    // Initial: output=0, prevError=0
 
-    // First step: sensor=0.8, error=0.2, dt=1.0
-    // integral = 0 + 0.2*1 = 0.2
-    // raw = 0.5*0.2 + 0.1*0.2 = 0.1 + 0.02 = 0.12
+    // Step 1: sensor=0.8, error=0.2, prevError=0
+    //   increment = 0.5*(0.2-0) + 0.1*(0.2+0) = 0.1 + 0.02 = 0.12
+    //   output = 0 + 0.12 = 0.12
     double out = ctrl.update(0.8, 1.0);
     EXPECT_NEAR(out, 0.12, 1e-10);
 
-    // Second step: sensor=0.9, error=0.1, dt=1.0
-    // integral = 0.2 + 0.1*1 = 0.3
-    // raw = 0.5*0.1 + 0.1*0.3 = 0.05 + 0.03 = 0.08
+    // Step 2: sensor=0.9, error=0.1, prevError=0.2
+    //   increment = 0.5*(0.1-0.2) + 0.1*(0.1+0.2) = -0.05 + 0.03 = -0.02
+    //   output = 0.12 + (-0.02) = 0.10
     out = ctrl.update(0.9, 1.0);
-    EXPECT_NEAR(out, 0.08, 1e-10);
+    EXPECT_NEAR(out, 0.10, 1e-10);
+
+    // Step 3: sensor=0.95, error=0.05, prevError=0.1
+    //   increment = 0.5*(0.05-0.1) + 0.1*(0.05+0.1) = -0.025 + 0.015 = -0.01
+    //   output = 0.10 + (-0.01) = 0.09
+    out = ctrl.update(0.95, 1.0);
+    EXPECT_NEAR(out, 0.09, 1e-10);
 }
 
-TEST(ControllerTest, Deadband) {
+TEST(ControllerTest, IncrementalPI_Deadband) {
     Controller ctrl(0, "DB-ctrl", 0, 0, 100.0, 1.0, 0.0, 5.0);
     // deadband=5, setpoint=100
 
-    // sensor=97 → error=3, within deadband → treated as 0
+    // sensor=97, error=3, within deadband -> treated as 0
+    // increment = 1.0*(0-0) = 0, output stays 0
     double out = ctrl.update(97.0, 1.0);
     EXPECT_DOUBLE_EQ(out, 0.0);
 
-    // sensor=90 → error=10, outside deadband
-    ctrl.reset();
+    // sensor=90, error=10, outside deadband
+    // increment = 1.0*(10-0) = 10, output = 0+10 = 10, clamped to 1.0
     out = ctrl.update(90.0, 1.0);
-    EXPECT_GT(out, 0.0);
+    EXPECT_DOUBLE_EQ(out, 1.0);
 }
 
-TEST(ControllerTest, OutputClamping) {
+TEST(ControllerTest, IncrementalPI_OutputClamping) {
     Controller ctrl(0, "clamp", 0, 0, 100.0, 10.0, 0.0);
-    // Large gain → output saturates
-    double out = ctrl.update(0.0, 1.0);  // error=100, raw=1000
-    EXPECT_DOUBLE_EQ(out, 1.0);  // clamped to max
+    // Large gain, error=100
+    // increment = 10*(100-0) = 1000, output = 0+1000 = 1000, clamped to 1.0
+    double out = ctrl.update(0.0, 1.0);
+    EXPECT_DOUBLE_EQ(out, 1.0);
 
-    ctrl.reset();
-    out = ctrl.update(200.0, 1.0);  // error=-100, raw=-1000
-    EXPECT_DOUBLE_EQ(out, 0.0);  // clamped to min
+    // Now sensor overshoots: sensor=200, error=-100, prevError=100
+    // increment = 10*(-100-100) = -2000, output = 1.0+(-2000), clamped to 0
+    out = ctrl.update(200.0, 1.0);
+    EXPECT_DOUBLE_EQ(out, 0.0);
 }
 
-TEST(ControllerTest, Reset) {
+TEST(ControllerTest, IncrementalPI_Reset) {
     Controller ctrl(0, "reset", 0, 0, 1.0, 0.5, 0.1);
     ctrl.update(0.5, 1.0);
     ctrl.update(0.7, 1.0);
     EXPECT_NE(ctrl.output, 0.0);
     ctrl.reset();
     EXPECT_DOUBLE_EQ(ctrl.output, 0.0);
-    EXPECT_DOUBLE_EQ(ctrl.integral, 0.0);
+    EXPECT_DOUBLE_EQ(ctrl.prevError, 0.0);
 }
 
 // ── Sensor Tests ─────────────────────────────────────────────────────

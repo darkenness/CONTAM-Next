@@ -5,9 +5,17 @@
 
 namespace contam {
 
-// Incremental PI Controller
-// output = clamp(output_prev + Kp*(e - e_prev) + Ki*dt*e, 0, 1)
-// With deadband: if |e| < deadband, treat e as 0
+// Incremental PI Controller (CONTAM standard)
+//
+// Formula per CONTAM requirements document:
+//   output_t = output_{t-1} + Kp*(e_t - e_{t-1}) + Ki*(e_t + e_{t-1})
+//
+// Where:
+//   e_t = setpoint - sensorValue  (error signal)
+//   Ki already absorbs the dt/2 factor (user-configured parameter)
+//   Output is hard-clamped to [0.0, 1.0]
+//
+// Deadband: if |e_t| < deadband, treat e_t as 0 (prevent high-frequency chatter)
 class Controller {
 public:
     int id;
@@ -16,7 +24,7 @@ public:
     int actuatorId;     // which actuator receives output
     double setpoint;    // target value for the sensor reading
     double Kp;          // proportional gain
-    double Ki;          // integral gain (1/s)
+    double Ki;          // integral gain (absorbs dt/2 factor per CONTAM convention)
     double deadband;    // deadband around setpoint (no action if |error| < deadband)
     double outputMin;   // minimum output (default 0)
     double outputMax;   // maximum output (default 1)
@@ -24,23 +32,24 @@ public:
     // Internal state
     double output;      // current output value [outputMin, outputMax]
     double prevError;   // previous error for incremental form
-    double integral;    // accumulated integral term
 
     Controller()
         : id(0), sensorId(0), actuatorId(0), setpoint(0),
           Kp(1.0), Ki(0.0), deadband(0.0),
           outputMin(0.0), outputMax(1.0),
-          output(0.0), prevError(0.0), integral(0.0) {}
+          output(0.0), prevError(0.0) {}
 
     Controller(int id, const std::string& name, int sensorId, int actuatorId,
                double setpoint, double Kp, double Ki = 0.0, double deadband = 0.0)
         : id(id), name(name), sensorId(sensorId), actuatorId(actuatorId),
           setpoint(setpoint), Kp(Kp), Ki(Ki), deadband(deadband),
           outputMin(0.0), outputMax(1.0),
-          output(0.0), prevError(0.0), integral(0.0) {}
+          output(0.0), prevError(0.0) {}
 
-    // Update controller output given current sensor reading and timestep
-    double update(double sensorValue, double dt) {
+    // Update controller output given current sensor reading
+    // Uses CONTAM incremental PI formula:
+    //   output_t = output_{t-1} + Kp*(e_t - e_{t-1}) + Ki*(e_t + e_{t-1})
+    double update(double sensorValue, double /*dt*/) {
         double error = setpoint - sensorValue;
 
         // Apply deadband
@@ -48,17 +57,12 @@ public:
             error = 0.0;
         }
 
-        // Incremental PI
-        integral += error * dt;
-        double rawOutput = Kp * error + Ki * integral;
+        // Incremental PI (CONTAM standard formula)
+        double increment = Kp * (error - prevError) + Ki * (error + prevError);
+        double rawOutput = output + increment;
 
-        // Clamp output
+        // Hard clamp to [outputMin, outputMax]
         output = std::clamp(rawOutput, outputMin, outputMax);
-
-        // Anti-windup: if output is saturated, stop integrating
-        if (output != rawOutput) {
-            integral -= error * dt;  // undo the integration that caused saturation
-        }
 
         prevError = error;
         return output;
@@ -67,7 +71,6 @@ public:
     void reset() {
         output = 0.0;
         prevError = 0.0;
-        integral = 0.0;
     }
 };
 

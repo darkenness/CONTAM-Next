@@ -51,6 +51,8 @@ export function FloatingStatusBox() {
             top: Math.max(60, Math.min(mousePos.y, window.innerHeight - 100)),
             transform: 'translate(16px, -50%)',
           }}
+        >
+          <div className="font-semibold text-foreground">{zone.name}</div>
           <div className="text-muted-foreground">面积: {area.toFixed(2)} m²</div>
           <div className="text-muted-foreground">温度: {(zone.temperature - 273.15).toFixed(1)}°C</div>
           <div className="text-muted-foreground">体积: {zone.volume.toFixed(1)} m³</div>
@@ -88,7 +90,8 @@ export function FloatingStatusBox() {
             top: Math.max(60, Math.min(mousePos.y, window.innerHeight - 100)),
             transform: 'translate(16px, -50%)',
           }}
-          </div>
+        >
+          <div className="font-semibold text-foreground">墙壁 ({edge.isExterior ? '外墙' : '内墙'})</div>
           <div className="text-muted-foreground">长度: {length.toFixed(2)} m</div>
           {connectedZones.length === 2 && (
             <div className="text-muted-foreground">{connectedZones[0]} ⟷ {connectedZones[1]}</div>

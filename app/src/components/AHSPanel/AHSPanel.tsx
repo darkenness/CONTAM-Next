@@ -1,7 +1,7 @@
 import { useAppStore } from '../../store/useAppStore';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { Plus, Trash2, Wind } from 'lucide-react';
-import type { AHSConfig, AHSZoneConnection } from '../../types';
+import type { AHSZoneConnection } from '../../types';
 
 function InputField({ label, value, onChange, unit, step }: {
   label: string; value: number; onChange: (v: number) => void; unit?: string; step?: string;

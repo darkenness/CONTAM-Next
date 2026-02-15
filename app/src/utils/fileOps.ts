@@ -3,7 +3,7 @@
  * falls back to browser APIs otherwise.
  */
 
-const isTauri = () => !!(window as Record<string, unknown>).__TAURI_INTERNALS__;
+const isTauri = () => !!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
 
 // ── Save ────────────────────────────────────────────────────────────
 

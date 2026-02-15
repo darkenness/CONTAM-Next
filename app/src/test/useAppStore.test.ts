@@ -109,7 +109,7 @@ describe('useAppStore', () => {
       const topo = useAppStore.getState().exportTopology();
       expect(topo.nodes).toHaveLength(2);
       expect(topo.links).toHaveLength(1);
-      expect(topo.ambient.temperature).toBe(283.15);
+      expect(topo.ambient!.temperature).toBe(283.15);
     });
 
     it('includes weather when enabled', () => {

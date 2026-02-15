@@ -219,18 +219,21 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
     selectedFaceId: null,
     selectedPlacementId: null,
     selectedVertexId: null,
+    ...(id ? { sidebarOpen: true } : {}),
   }),
   selectFace: (id) => set({
     selectedEdgeId: null,
     selectedFaceId: id,
     selectedPlacementId: null,
     selectedVertexId: null,
+    ...(id ? { sidebarOpen: true } : {}),
   }),
   selectPlacement: (id) => set({
     selectedEdgeId: null,
     selectedFaceId: null,
     selectedPlacementId: id,
     selectedVertexId: null,
+    ...(id ? { sidebarOpen: true } : {}),
   }),
   clearSelection: () => set({
     selectedEdgeId: null,

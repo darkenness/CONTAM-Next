@@ -128,18 +128,6 @@ export function CanvasContextMenu() {
           >
             编辑区域属性
           </button>
-          <button
-            className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground"
-            onClick={() => close()}
-          >
-            添加污染源
-          </button>
-          <button
-            className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground"
-            onClick={() => close()}
-          >
-            添加人员
-          </button>
         </>
       )}
 

@@ -361,14 +361,18 @@ function LinkProperties() {
 }
 
 function AmbientSettings() {
-  const { ambientTemperature, windSpeed, windDirection, setAmbient } = useAppStore();
+  const { ambientTemperature, ambientPressure, windSpeed, windDirection, setAmbient } = useAppStore();
 
   return (
     <div className="flex flex-col gap-3">
       <span className="text-sm font-bold text-foreground">室外环境条件</span>
       <InputField
-        label="温度" value={ambientTemperature} unit="K" type="number" step="0.1"
-        onChange={(v) => setAmbient({ ambientTemperature: parseFloat(v) || 283.15 })}
+        label="温度" value={+(ambientTemperature - 273.15).toFixed(1)} unit="°C" type="number" step="0.1"
+        onChange={(v) => setAmbient({ ambientTemperature: (parseFloat(v) || 10) + 273.15 })}
+      />
+      <InputField
+        label="大气压" value={ambientPressure} unit="Pa" type="number" step="1"
+        onChange={(v) => setAmbient({ ambientPressure: parseFloat(v) || 0 })}
       />
       <InputField
         label="风速" value={windSpeed} unit="m/s" type="number" step="0.1"

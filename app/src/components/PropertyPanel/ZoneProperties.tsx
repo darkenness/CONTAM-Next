@@ -68,11 +68,11 @@ export function ZoneProperties() {
       />
       <InputField
         label="温度"
-        value={zone.temperature}
-        unit="K"
+        value={+(zone.temperature - 273.15).toFixed(1)}
+        unit="°C"
         type="number"
         step="0.1"
-        onChange={(v) => updateZone(selectedFaceId, { temperature: parseFloat(v) || 293.15 })}
+        onChange={(v) => updateZone(selectedFaceId, { temperature: (parseFloat(v) || 20) + 273.15 })}
       />
       <InputField
         label="体积"

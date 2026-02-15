@@ -172,7 +172,7 @@ export default function TopBar() {
       <div className="flex items-center gap-0.5">
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={() => useAppStore.temporal.getState().undo()}>
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={() => { useCanvasStore.temporal.getState().undo(); useAppStore.temporal.getState().undo(); }}>
               <Undo2 size={15} />
             </Button>
           </TooltipTrigger>
@@ -180,7 +180,7 @@ export default function TopBar() {
         </Tooltip>
         <Tooltip delayDuration={200}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={() => useAppStore.temporal.getState().redo()}>
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-xl" onClick={() => { useCanvasStore.temporal.getState().redo(); useAppStore.temporal.getState().redo(); }}>
               <Redo2 size={15} />
             </Button>
           </TooltipTrigger>

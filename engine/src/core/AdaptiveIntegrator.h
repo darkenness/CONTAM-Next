@@ -15,9 +15,10 @@ public:
         double dtMax = 3600.0;    // maximum time step (s)
         double safetyFactor = 0.9;
         int maxOrder = 2;         // BDF order (1 or 2)
+        Config() = default;
     };
 
-    AdaptiveIntegrator(int numStates, const Config& config = Config{});
+    AdaptiveIntegrator(int numStates, const Config& config = {});
 
     // RHS function: dy/dt = f(t, y)
     using RhsFunc = std::function<void(double t, const std::vector<double>& y, std::vector<double>& dydt)>;

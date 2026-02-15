@@ -316,9 +316,9 @@ export function detectFaces(geo: Geometry): GeoFace[] {
     const toVertex = getVertex(geo, to)!;
     const incomingAngle = Math.atan2(fromVertex.y - toVertex.y, fromVertex.x - toVertex.x);
 
-    // Find next neighbor clockwise after incoming direction
+    // Find next neighbor: most clockwise turn from incoming direction
     let bestIdx = -1;
-    let bestAngleDiff = Infinity;
+    let bestAngleDiff = -Infinity;
 
     for (let i = 0; i < neighbors.length; i++) {
       if (neighbors[i].neighbor === from && neighbors.length > 1) {
@@ -328,8 +328,10 @@ export function detectFaces(geo: Geometry): GeoFace[] {
       const nv = getVertex(geo, neighbors[i].neighbor)!;
       const outAngle = Math.atan2(nv.y - toVertex.y, nv.x - toVertex.x);
       let diff = outAngle - incomingAngle;
-      if (diff <= 0) diff += 2 * Math.PI;
-      if (diff < bestAngleDiff) {
+      // Normalize to (0, 2π]
+      while (diff <= 0) diff += 2 * Math.PI;
+      while (diff > 2 * Math.PI) diff -= 2 * Math.PI;
+      if (diff > bestAngleDiff) {
         bestAngleDiff = diff;
         bestIdx = i;
       }
@@ -367,12 +369,16 @@ export function detectFaces(geo: Geometry): GeoFace[] {
         if (!next) break;
 
         const nextHeKey = halfEdgeKey(current, next.next);
+
+        if (next.next === startFrom && cycle.length >= 2) {
+          // Closing the cycle — allow even if half-edge was used
+          cycle.push({ from: current, to: next.next, edgeId: next.edgeId });
+          usedHalfEdges.add(nextHeKey);
+          foundCycle = true;
+          break;
+        }
+
         if (usedHalfEdges.has(nextHeKey)) {
-          if (next.next === startFrom && cycle.length >= 3) {
-            cycle.push({ from: current, to: next.next, edgeId: next.edgeId });
-            usedHalfEdges.add(nextHeKey);
-            foundCycle = true;
-          }
           break;
         }
 
@@ -380,11 +386,6 @@ export function detectFaces(geo: Geometry): GeoFace[] {
         usedHalfEdges.add(nextHeKey);
         prev = current;
         current = next.next;
-
-        if (current === startFrom && cycle.length >= 3) {
-          foundCycle = true;
-          break;
-        }
       }
 
       if (foundCycle && cycle.length >= 3) {

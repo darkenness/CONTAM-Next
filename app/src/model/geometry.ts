@@ -52,6 +52,7 @@ export interface EdgePlacement {
   // Large opening (opening / TwoWayFlow)
   dischargeCd?: number;        // discharge coefficient
   openingArea?: number;        // m²
+  openingHeight?: number;      // m (TwoWayFlow opening height)
 
   // Fan
   maxFlow?: number;            // m³/s
@@ -62,6 +63,19 @@ export interface EdgePlacement {
 
   // Filter
   filterEfficiency?: number;   // 0~1 removal efficiency
+
+  // Duct
+  ductDiameter?: number;       // m
+  ductRoughness?: number;      // m
+  ductSumK?: number;           // minor loss coefficients
+
+  // Self-regulating vent
+  targetFlow?: number;         // m³/s
+  pMin?: number;               // Pa
+  pMax?: number;               // Pa
+
+  // M-03: Schedule binding
+  scheduleId?: string;         // reference to a schedule in useAppStore
 }
 
 // ── Story (Floor Level) ──
@@ -71,6 +85,7 @@ export interface Story {
   name: string;
   level: number;           // 0 = ground
   floorToCeilingHeight: number;  // meters
+  elevation?: number;      // M-05: absolute elevation override (meters)
   geometry: Geometry;
   placements: EdgePlacement[];
   zoneAssignments: ZoneAssignment[];
@@ -94,6 +109,8 @@ export interface ZoneAssignment {
   temperature: number;     // K
   volume: number;          // m³ (auto-calculated from face area × height)
   color: string;           // hex color for display
+  shaftGroupId?: string;   // C-03: zones with same shaftGroupId auto-connect across floors
+  initialConcentrations?: Record<string, number>; // H-07: per-species initial concentrations
 }
 
 // ── Helper functions ──
@@ -184,13 +201,48 @@ export function getPositionOnEdge(geo: Geometry, edge: GeoEdge, alpha: number): 
 /**
  * Find or create a vertex at (x, y), snapping to existing vertex within threshold
  */
-export function findOrCreateVertex(geo: Geometry, x: number, y: number, snapThreshold: number = 0.08): { vertex: GeoVertex; isNew: boolean } {
+// L-31: Grid-based spatial index for fast vertex proximity lookup
+function vertexGridKey(x: number, y: number, cellSize: number): string {
+  return `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+}
+
+function findNearbyVertex(geo: Geometry, x: number, y: number, snapThreshold: number): GeoVertex | null {
+  const cellSize = Math.max(snapThreshold * 2, 0.2);
+  const cx = Math.floor(x / cellSize);
+  const cy = Math.floor(y / cellSize);
+
+  // Build grid index (cheap for typical vertex counts)
+  const grid = new Map<string, GeoVertex[]>();
   for (const v of geo.vertices) {
-    const dist = Math.sqrt((v.x - x) ** 2 + (v.y - y) ** 2);
-    if (dist <= snapThreshold) {
-      return { vertex: v, isNew: false };
+    const key = vertexGridKey(v.x, v.y, cellSize);
+    const bucket = grid.get(key);
+    if (bucket) bucket.push(v);
+    else grid.set(key, [v]);
+  }
+
+  // Check 3x3 neighborhood
+  let best: GeoVertex | null = null;
+  let bestDist = snapThreshold;
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const bucket = grid.get(`${cx + dx},${cy + dy}`);
+      if (!bucket) continue;
+      for (const v of bucket) {
+        const dist = Math.sqrt((v.x - x) ** 2 + (v.y - y) ** 2);
+        if (dist <= bestDist) {
+          bestDist = dist;
+          best = v;
+        }
+      }
     }
   }
+  return best;
+}
+
+export function findOrCreateVertex(geo: Geometry, x: number, y: number, snapThreshold: number = 0.08): { vertex: GeoVertex; isNew: boolean } {
+  const found = findNearbyVertex(geo, x, y, snapThreshold);
+  if (found) return { vertex: found, isNew: false };
+
   const vertex: GeoVertex = { id: generateId('v_'), x, y, edgeIds: [] };
   geo.vertices.push(vertex);
   return { vertex, isNew: true };

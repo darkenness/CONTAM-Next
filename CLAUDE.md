@@ -23,10 +23,10 @@
 contam-next/
 ├── engine/                 # C++17 计算引擎
 │   ├── src/core/           # Node, Link, Network, Solver, ContaminantSolver, TransientSimulation
-│   ├── src/elements/       # 13 种气流元件 (PowerLaw, Fan, Duct, Damper, Filter, TwoWayFlow, CheckValve, SelfRegVent, ...)
+│   ├── src/elements/       # 16 种气流元件 (PowerLaw, Fan, Duct, Damper, Filter, TwoWayFlow, CheckValve, SelfRegVent, QuadraticElement, BackdraftDamper, SupplyDiffuser, ReturnGrille, ...)
 │   ├── src/control/        # Sensor, Controller (PI), Actuator, LogicNodes
-│   ├── src/io/             # JsonReader, JsonWriter, Hdf5Writer, WeatherReader, ContaminantReader, CvfReader, WpcReader, CbwReport, SqliteWriter, AchReport, CsmReport
-│   ├── test/               # 182+ GoogleTest 用例 (10 个测试文件)
+│   ├── src/io/             # JsonReader, JsonWriter, Hdf5Writer, WeatherReader, ContaminantReader, CvfReader, WpcReader, CbwReport, SqliteWriter, AchReport, CsmReport, ValReport, EbwReport, CexReport, LogReport, OneDOutput
+│   ├── test/               # 247+ GoogleTest 用例 (16 个测试文件)
 │   └── python/             # pycontam pybind11 绑定
 ├── app/                    # React 前端
 │   ├── src/canvas/         # Canvas2D 渲染器 (Excalidraw 风格无限画布)
@@ -71,7 +71,7 @@ cd app && npx tauri dev        # Tauri 桌面应用 (调用真实引擎)
 cd engine
 cmake -S . -B build -G "Visual Studio 16 2019" -A x64
 cmake --build build --config Release
-./build/Release/contam_tests.exe    # 运行 200+ 个测试
+./build/Release/contam_tests.exe    # 运行 247+ 个测试
 ./build/Release/contam_engine.exe -i ../validation/case01_3room/input.json -o output.json -v
 ```
 
@@ -103,7 +103,7 @@ cmake --build build --config Release
 ## 当前开发状态
 
 ### 已完成
-- C++ 引擎: 13 种气流元件, N-R 求解器 (TrustRegion+SUR), PCG 迭代, 隐式欧拉, 4 种源类型, PI 控制器+死区, 14 种逻辑节点, 化学动力学, 气溶胶沉积/重悬浮, Axley BLD 吸附, SimpleParticleFilter (三次样条), SuperFilter (级联+负载衰减), 风压 Cp(θ) 配置, WeekSchedule/DayType, SimpleAHS, 乘员暴露追踪, 气象文件读取, JSON/HDF5 I/O, OneDZone (1D FVM), AdaptiveIntegrator (BDF), DuctNetwork, SqliteWriter, AchReport, CsmReport, CvfReader/DvfReader (外部时序), WpcReader (非均匀风压), CbwReport (箱线图统计)
+- C++ 引擎: 16 种气流元件, N-R 求解器 (TrustRegion+SUR), PCG 迭代, 隐式欧拉, 5 种源类型, PI 控制器+死区, 15 种逻辑节点, 化学动力学, 气溶胶沉积/重悬浮, Axley BLD 吸附, SimpleParticleFilter (三次样条), SuperFilter (级联+负载衰减), 风压 Cp(θ) 配置, WeekSchedule/DayType, SimpleAHS, 乘员暴露追踪, 气象文件读取, JSON/HDF5 I/O, OneDZone (1D FVM), AdaptiveIntegrator (BDF), DuctNetwork, SqliteWriter, AchReport, CsmReport, CvfReader/DvfReader (外部时序), WpcReader (非均匀风压), CbwReport (箱线图统计), ValReport (加压测试), EbwReport (暴露记录), CexReport (外渗追踪), LogReport (控制日志), OneDOutput (1D 二进制输出)
 - 前端画布: 墙体/矩形绘制, 门窗放置, 多楼层, 缩放/平移, undo/redo
 - 属性面板: 区域/边/构件/楼层属性编辑
 - 控制流: React Flow 可视化 (Sensor, PI Controller, Actuator, Math, Logic 节点)
@@ -112,13 +112,13 @@ cmake --build build --config Release
 
 ### 待完成 — 集成缺口
 1. ~~**结果叠加层未接入**~~ — ✅ drawFlowArrows/drawConcentrationHeatmap/drawPressureLabels 已在 Canvas2D results mode 中接入
-2. **背景图渲染未接入** — drawBackgroundImage 已实现，Canvas2D 接入代码待补 (bgImageRef + useEffect 加载 + render step 0)
-3. **风压矢量未接入** — drawWindPressureVectors 已实现，Canvas2D 接入代码待补 (Cp 计算 + 调用)
-4. **文件对话框** — 保存/加载使用浏览器 API，应改用 Tauri 原生对话框
+2. ~~**背景图渲染未接入**~~ — ✅ Canvas2D L87-102 useEffect 加载 + L154-163 渲染步骤 0 调用 drawBackgroundImage
+3. ~~**风压矢量未接入**~~ — ✅ Canvas2D L342-360 results mode 中计算 Cp(θ) 并调用 drawWindPressureVectors
+4. ~~**文件对话框**~~ — ✅ fileOps.ts 已改用 Tauri 原生对话框 (@tauri-apps/plugin-dialog + plugin-fs)，浏览器回退到 input/a 标签
 5. **StateNode 未启用** — 层级状态机已编写但工具仍使用 switch(toolMode)
 
 ### 已完成 — Phase 4 + 4.5
-- ✅ 前端 25 个 Vitest 测试 (store CRUD, DAG 验证, 文件操作)
+- ✅ 前端 170+ 个 Vitest 测试 (8 个测试文件: geometry, camera2d, interaction, useCanvasStore, useAppStore, dataBridge, dagValidation, fileOps)
 - ✅ 引擎 JSON 解析 (气象记录, AHS 系统, 人员)
 - ✅ DAG 环路检测 (控制流画布)
 - ✅ HDF5 输出 (稳态+瞬态, 物种/节点元数据)
@@ -150,11 +150,11 @@ cmake --build build --config Release
   - ContaminantPanel 新增 "爆发式释放源" 选项及参数输入 (释放总量/触发时间/持续时间)
   - 现在支持全部 5 种源类型的 UI 配置
 
-#### 前端 P1 — 部分完成
+#### 前端 P1 — ✅ 全部完成
 - ✅ F-05 Schedule CRUD: useAppStore 新增 updateSchedule/removeSchedule action
-- ⏳ F-03 背景图渲染接入: drawBackgroundImage 导入已准备，Canvas2D 渲染循环接入未完成
-- ⏳ F-04 风压矢量接入: drawWindPressureVectors 导入已准备，Canvas2D 渲染循环接入未完成
-- ⏳ F-06 TimeStepper 瞬态回放: 组件已存在且有完整播放逻辑，但未与 Canvas2D 结果叠加层联动
+- ✅ F-03 背景图渲染接入: Canvas2D L87-102 useEffect 加载 + L154-163 渲染步骤 0 调用 drawBackgroundImage
+- ✅ F-04 风压矢量接入: Canvas2D L342-360 results mode 中计算 Cp(θ) 并调用 drawWindPressureVectors
+- ✅ F-06 TimeStepper 瞬态回放: Canvas2D L211-215 使用 currentTransientStep 索引瞬态时间步进行叠加渲染
 
 ---
 
@@ -208,38 +208,38 @@ cmake --build build --config Release
 | 03 | 风机+管道+门网络 | ✅ 4 个测试 |
 | 04 | 多区域多物种 (CO₂+PM2.5) | ✅ 4 个测试 |
 
-### P2 — 进阶功能 (中优先级)
+### P2 — 进阶功能 (中优先级) — 大部分已完成
 
-#### 引擎
-| # | 功能 | 说明 | 对应文档章节 |
-|---|------|------|-------------|
-| E-12 | CFD 区域耦合求解 | 零阶湍流 CFD 求解器 + 宏观网络双向边界条件交换 | §2.2 |
+#### 引擎 — 大部分已完成
+| # | 功能 | 状态 | 说明 | 对应文档章节 |
+|---|------|------|------|-------------|
+| E-12 | CFD 区域耦合求解 | 待实现 | 零阶湍流 CFD 求解器 + 宏观网络双向边界条件交换 | §2.2 |
 | E-13 | CVF/DVF 外部数据文件驱动 | ✅ 已完成 | CvfReader + DvfReader，线性插值/阶跃保持 | §5.2 |
-| E-14 | TCP/IP 套接字桥接模式 | ContamX Bridge Mode，外部程序实时遥控 (变量注入、时间步推进) | §7.1 |
-| E-15 | FMI/FMU 联合仿真接口 | EnergyPlus/TRNSYS 耦合，温度-气流-浓度双向交换 | §7.2 |
+| E-14 | TCP/IP 套接字桥接模式 | 待实现 | ContamX Bridge Mode，外部程序实时遥控 | §7.1 |
+| E-15 | FMI/FMU 联合仿真接口 | 待实现 | EnergyPlus/TRNSYS 耦合，温度-气流-浓度双向交换 | §7.2 |
 | E-16 | WPC 空间非均匀外部边界 | ✅ 已完成 | WpcReader，逐开口逐时间步风压/浓度导入 | §5.1 |
-| E-17 | 超级控制元件 SuperElement | 可复用的封装控制回路，库文件存储，实例化部署 | §5.3 |
+| E-17 | 超级控制元件 SuperElement | 待实现 | 可复用的封装控制回路，库文件存储，实例化部署 | §5.3 |
 | E-18 | 箱线图日统计 (.CBW) | ✅ 已完成 | CbwReport，日均/峰值/分位数 + text/csv | §9 |
-| E-19 | 污染外渗追踪 (.CEX) | 逐开口溯源毒气泄漏量 (基础/详细模式) | §9 |
-| E-20 | 乘员暴露记录 (.EBW) | 个人全天候呼吸道吸入量评估 | §9 |
-| E-21 | 建筑加压测试 (.VAL) | 鼓风门模拟，50Pa 正压泄漏量 (ACH/m³·h) | §9 |
+| E-19 | 污染外渗追踪 (.CEX) | ✅ 已完成 | CexReport.h/cpp — 逐开口溯源泄漏量 (基础/详细模式), 7 个测试 | §9 |
+| E-20 | 乘员暴露记录 (.EBW) | ✅ 已完成 | EbwReport.h/cpp — 个人呼吸道吸入量评估, 8 个测试 | §9 |
+| E-21 | 建筑加压测试 (.VAL) | ✅ 已完成 | ValReport.h/cpp — 鼓风门模拟 50Pa 泄漏量, 6 个测试 | §9 |
 
-#### 前端
-| # | 功能 | 说明 | 对应文档章节 |
-|---|------|------|-------------|
-| F-07 | 库管理器 LibraryManager | 气流元件、风机曲线、过滤器效率、日程表的跨项目复用 (.LB0~.LB5) | §6.2 |
-| F-08 | 底图追踪 TracingImage | 导入建筑平面位图作为草图板底层追踪图像 | §2.1 |
-| F-09 | 浮动状态框接入 | FloatingStatusBox 已有组件，需接入 Canvas2D 渲染 + 结果模式数据 | §6.2 |
+#### 前端 — 部分完成
+| # | 功能 | 状态 | 说明 | 对应文档章节 |
+|---|------|------|------|-------------|
+| F-07 | 库管理器 LibraryManager | 部分实现 — PropertyPanel 已导入并渲染 LibraryManager 组件于"库管理"标签页 | §6.2 |
+| F-08 | 底图追踪 TracingImage | 部分实现 — TracingImageControls 组件已在 Canvas2D 中渲染 | §2.1 |
+| F-09 | 浮动状态框接入 | 部分实现 — FloatingStatusBox 已在 Canvas2D 中渲染，结果模式数据接入待完善 | §6.2 |
 | ~~F-10~~ | ~~过滤器配置面板~~ | ✅ 已在 P1 阶段提前完成 | §4.3 |
-| F-11 | 伪几何比例因子 | 草图板网格→物理尺寸的比例换算，自动计算墙面积/区域面积/管道长度 | §2.1 |
+| F-11 | 伪几何比例因子 | ✅ 已完成 — useCanvasStore.scaleFactor + dataBridge sf/sf2/sf3 自动换算 + ScaleFactorControl 组件 + renderer 物理尺寸标注 | §2.1 |
 
 ### P3 — 远期功能 (低优先级)
 
 | # | 功能 | 说明 | 对应文档章节 |
 |---|------|------|-------------|
-| E-22 | 控制节点日志 (.LOG) | Report Node 实时记录控制变量流水 | §9 |
-| E-23 | 1D 专用二进制输出 (.RXR/.RZF/.RZM/.RZ1) | 1D 网格微单元浓度分布序列 | §9 |
-| F-12 | 联合仿真配置 UI | TCP/IP 桥接、FMI/FMU 变量映射的前端配置界面 | §7 |
+| E-22 | 控制节点日志 (.LOG) | ✅ 已完成 — LogReport.h/cpp, 10 个测试 | §9 |
+| E-23 | 1D 专用二进制输出 (.RXR/.RZF/.RZM/.RZ1) | ✅ 已完成 — OneDOutput.h/cpp, 14 个测试 | §9 |
+| F-12 | 联合仿真配置 UI | 待实现 — TCP/IP 桥接、FMI/FMU 变量映射的前端配置界面 | §7 |
 
 ---
 
@@ -247,7 +247,7 @@ cmake --build build --config Release
 
 > Phase 5 (P0+P1) 已全部完成。Phase 6 从 P2 中挑选高价值功能，分三个迭代推进。
 
-### Phase 6.1 — 外部数据驱动 + UI 补全 (进行中)
+### Phase 6.1 — 外部数据驱动 + UI 补全 (大部分完成)
 
 目标：让引擎支持外部时序数据输入，前端补齐核心交互缺失。
 
@@ -258,12 +258,12 @@ cmake --build build --config Release
 | E-16 | WPC 空间非均匀外部边界 | ✅ 已完成 | `WpcReader.h/cpp` (逐开口逐时间步风压/浓度导入), TransientSimulation 集成 WPC 更新 |
 | E-18 | 箱线图日统计 (.CBW) | ✅ 已完成 | `CbwReport.h/cpp` (日均/峰值/分位数统计, text/csv 输出) |
 
-#### 前端 — ⏳ 未开始 (需要实现)
+#### 前端 — 部分完成
 | # | 功能 | 状态 | 说明 |
 |---|------|------|------|
-| F-07 | 库管理器 LibraryManager | ⏳ 待实现 | 气流元件、风机曲线、过滤器效率、日程表的跨项目复用。需新增 LibraryManager 组件 + 本地文件存储 (.LB0~.LB5) |
-| F-09 | 浮动状态框接入 | ⏳ 待实现 | FloatingStatusBox 已有组件，需接入结果模式数据 (压力/流量/浓度悬停显示) |
-| F-11 | 伪几何比例因子 | ⏳ 待实现 | useCanvasStore 加 scaleFactor，dataBridge 自动换算面积/体积/管道长度 |
+| F-07 | 库管理器 LibraryManager | 部分实现 | PropertyPanel 已导入并渲染 LibraryManager 组件于"库管理"标签页，深度功能待完善 |
+| F-09 | 浮动状态框接入 | 部分实现 | FloatingStatusBox 已在 Canvas2D 中渲染，结果模式数据接入待完善 |
+| F-11 | 伪几何比例因子 | ✅ 已完成 | useCanvasStore.scaleFactor + dataBridge sf/sf2/sf3 自动换算 + ScaleFactorControl 组件 + renderer 物理尺寸标注 |
 
 #### 测试状态
 - ✅ Phase 6 引擎测试: 16/16 通过 (ScheduleInterp, CvfReader, DvfReader, WpcReader, CbwReport)
@@ -285,19 +285,97 @@ cmake --build build --config Release
 #### 前端
 | # | 功能 | 工作量 | 说明 |
 |---|------|--------|------|
-| F-08 | 底图追踪 TracingImage | 中 | 导入建筑平面位图，支持缩放/旋转/透明度调节，作为草图板底层 |
+| F-08 | 底图追踪 TracingImage | 部分实现 | TracingImageControls 组件已在 Canvas2D 中渲染，缩放/旋转/透明度调节待完善 |
 | F-12 | 联合仿真配置 UI | 中 | TCP/IP 桥接变量映射 + FMI/FMU 输入输出端口配置界面 |
 
-### Phase 6.3 — 高级报告 + 专项分析
+### Phase 6.3 — 高级报告 + 专项分析 — 报告类全部完成，CFD 待实现
 
 目标：补齐 CONTAM 原版的专项报告输出能力。
 
-#### 引擎
-| # | 功能 | 工作量 | 说明 |
-|---|------|--------|------|
-| E-12 | CFD 区域耦合求解 | 大 | 零阶湍流 CFD 求解器 + 宏观网络双向边界条件交换 |
-| E-19 | 污染外渗追踪 (.CEX) | 中 | 逐开口溯源毒气泄漏量 (基础/详细模式) |
-| E-20 | 乘员暴露记录 (.EBW) | 中 | 个人全天候呼吸道吸入量评估 |
-| E-21 | 建筑加压测试 (.VAL) | 中 | 鼓风门模拟，50Pa 正压泄漏量 (ACH/m³·h) |
-| E-22 | 控制节点日志 (.LOG) | 小 | Report Node 实时记录控制变量流水 |
-| E-23 | 1D 专用二进制输出 | 小 | 1D 网格微单元浓度分布序列 |
+#### 引擎 — 报告类全部完成
+| # | 功能 | 状态 | 说明 |
+|---|------|------|------|
+| E-12 | CFD 区域耦合求解 | 待实现 | 零阶湍流 CFD 求解器 + 宏观网络双向边界条件交换 |
+| E-19 | 污染外渗追踪 (.CEX) | ✅ 已完成 | CexReport.h/cpp — 逐开口溯源泄漏量, 7 个测试 |
+| E-20 | 乘员暴露记录 (.EBW) | ✅ 已完成 | EbwReport.h/cpp — 个人呼吸道吸入量评估, 8 个测试 |
+| E-21 | 建筑加压测试 (.VAL) | ✅ 已完成 | ValReport.h/cpp — 鼓风门模拟 50Pa 泄漏量, 6 个测试 |
+| E-22 | 控制节点日志 (.LOG) | ✅ 已完成 | LogReport.h/cpp — 控制变量流水记录, 10 个测试 |
+| E-23 | 1D 专用二进制输出 | ✅ 已完成 | OneDOutput.h/cpp — RXR/RZF/RZM/RZ1 格式, 14 个测试 |
+
+---
+
+## Phase 14R — Bug Fix 批量修复 (52 项)
+
+> 基于 `bug-tracker.md` 审计结果，分 10 个 Phase 批量修复。
+
+### Phase 1: dataBridge 核心修复 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| C-01 | `buildElementFromPlacement()` 替代硬编码工厂，用户编辑参数正确传递引擎 |
+| C-02 | door 类型映射为 TwoWayFlow (Cd/area/height)，UI 显示对应参数 |
+| C-04 | opening 类型映射为 TwoWayFlow，新增 openingHeight 字段 |
+| M-01 | zone.volume > 0 时使用用户值，不再强制覆盖 |
+| M-17 | 节点/链接标高统一乘以 scaleFactor |
+| L-14 | 孤立墙构件验证警告 |
+| L-33 | 移除死代码 `downloadAsFile` |
+
+### Phase 2: 引擎集成安全 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| C-05 | 浏览器模式 mock 数据警告 toast |
+| C-06 | Rust 临时文件使用 UUID 避免并发冲突 |
+| M-19 | 跨平台引擎可执行文件名 (Windows .exe / Linux/macOS 无后缀) |
+| L-27 | 仿真 60 秒超时保护 |
+
+### Phase 3: 多楼层垂直连通 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| C-03 | shaftGroupId 竖井分组 → 跨楼层 TwoWayFlow 自动连接 |
+| H-06 | Story CRUD (removeStory/renameStory/duplicateStory) + FloorSwitcher 按钮 |
+| M-05 | Story.elevation 绝对标高覆盖 |
+| M-07 | FloorSwitcher 始终显示 (移除 stories.length <= 1 隐藏) |
+
+### Phase 4: 画布交互 UX — 墙体与矩形 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| 链式墙 | confirmWall 后自动以终点为起点继续绘制 |
+| 原子矩形 | addRect 单次 set() 调用，undo 一步撤销 4 面墙 |
+| 键盘守卫 | 工具快捷键在 input/textarea/select 中不触发 |
+
+### Phase 5: 画布交互 UX — 门窗与擦除 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| 悬停预览 | door/window/erase 模式下启用边/面悬停高亮 |
+
+### Phase 6: 面板数据一致性 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| L-30 | setAmbient 仅接受 ambient 相关字段 |
+| H-07 | initialConcentrations 传递到引擎 JSON |
+| 类型切换 | placement type 切换时重置所有类型特定字段 |
+
+### Phase 7: 验证与 Schema 同步 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| 增强验证 | 层高 > 0、面积 > 0、zone ID 唯一、温度范围、物种/源一致性 |
+| 竖井提示 | 多楼层无竖井连通警告 |
+
+### Phase 8: UI 细节与暗色模式 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| 暗色持久化 | localStorage 存储 dark mode 偏好，刷新后保持 |
+
+### Phase 9: 代码清理 — ✅ 已完成
+| Bug | 修复内容 |
+|-----|---------|
+| L-29 | 提取 `autoAssignZones()` 消除 confirmWall/addWall/addRect 三处重复 |
+| L-30 | setAmbient 收窄 (Phase 6 已完成) |
+| L-32 | 移除重复 ZONE_COLORS 定义 |
+
+### 新增接口字段
+| 接口 | 新增字段 |
+|------|---------|
+| EdgePlacement | openingHeight, ductDiameter, ductRoughness, ductSumK, targetFlow, pMin, pMax |
+| ZoneAssignment | shaftGroupId, initialConcentrations |
+| Story | elevation |
+| CanvasState | addRect, removeStory, renameStory, duplicateStory |

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -131,19 +131,109 @@ function controlSystemToFlow(controlSystem: ReturnType<typeof useAppStore.getSta
   return { nodes, edges };
 }
 
+/** Write React Flow graph state back to the app store's controlSystem */
+function flowToControlSystem(
+  nodes: Node[],
+  edges: Edge[],
+  prevCS: ReturnType<typeof useAppStore.getState>['controlSystem'],
+): ReturnType<typeof useAppStore.getState>['controlSystem'] {
+  // Rebuild sensors with updated positions
+  const sensors = prevCS.sensors.map(s => {
+    const n = nodes.find(nd => nd.id === `sensor-${s.id}`);
+    return n ? { ...s, x: n.position.x, y: n.position.y } : s;
+  });
+
+  // Rebuild controllers — update positions + sensorId/actuatorId from edges
+  const controllers = prevCS.controllers.map(c => {
+    const n = nodes.find(nd => nd.id === `ctrl-${c.id}`);
+    // Find sensor→controller edge
+    const inEdge = edges.find(e => e.target === `ctrl-${c.id}` && e.source.startsWith('sensor-'));
+    const sensorId = inEdge ? parseInt(inEdge.source.replace('sensor-', ''), 10) : c.sensorId;
+    // Find controller→actuator edge
+    const outEdge = edges.find(e => e.source === `ctrl-${c.id}` && e.target.startsWith('act-'));
+    const actuatorId = outEdge ? parseInt(outEdge.target.replace('act-', ''), 10) : c.actuatorId;
+    return {
+      ...c,
+      sensorId,
+      actuatorId,
+      ...(n ? { x: n.position.x, y: n.position.y } : {}),
+    };
+  });
+
+  // Rebuild actuators with updated positions
+  const actuators = prevCS.actuators.map(a => {
+    const n = nodes.find(nd => nd.id === `act-${a.id}`);
+    return n ? { ...a, x: n.position.x, y: n.position.y } : a;
+  });
+
+  return { sensors, controllers, actuators };
+}
+
 export default function ControlFlowCanvas() {
   const controlSystem = useAppStore(s => s.controlSystem);
+  const setControlSystem = useAppStore(s => s.setControlSystem);
   const initial = useMemo(() => controlSystemToFlow(controlSystem), [controlSystem]);
-  const [nodes, , onNodesChange] = useNodesState(initial.nodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+
+  // Track whether changes originated from store (avoid feedback loop)
+  const syncingFromStore = useRef(false);
+
+  // Sync store → local when controlSystem changes externally
+  useEffect(() => {
+    syncingFromStore.current = true;
+    const { nodes: newNodes, edges: newEdges } = controlSystemToFlow(controlSystem);
+    setNodes(newNodes);
+    setEdges(newEdges);
+    // Reset flag after React processes the state update
+    requestAnimationFrame(() => { syncingFromStore.current = false; });
+  }, [controlSystem, setNodes, setEdges]);
+
+  // Write back to store on node position changes
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    onNodesChange(changes);
+  }, [onNodesChange]);
+
+  // Write back on edge changes
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
+    onEdgesChange(changes);
+  }, [onEdgesChange]);
+
+  // Debounced write-back: sync local state → store
+  const writeBackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (syncingFromStore.current) return;
+    if (writeBackTimer.current) clearTimeout(writeBackTimer.current);
+    writeBackTimer.current = setTimeout(() => {
+      const newCS = flowToControlSystem(nodes, edges, controlSystem);
+      // Only update if something actually changed
+      const prev = controlSystem;
+      const posChanged = prev.sensors.some((s, i) => {
+        const ns = newCS.sensors[i];
+        return ns && ((s as any).x !== ns.x || (s as any).y !== ns.y);
+      }) || prev.controllers.some((c, i) => {
+        const nc = newCS.controllers[i];
+        return nc && (c.sensorId !== nc.sensorId || c.actuatorId !== nc.actuatorId || (c as any).x !== nc.x || (c as any).y !== nc.y);
+      });
+      if (posChanged) {
+        syncingFromStore.current = true;
+        setControlSystem(newCS);
+        requestAnimationFrame(() => { syncingFromStore.current = false; });
+      }
+    }, 300);
+    return () => { if (writeBackTimer.current) clearTimeout(writeBackTimer.current); };
+  }, [nodes, edges, controlSystem, setControlSystem]);
 
   const onConnect = useCallback((params: Connection) => {
     if (!isValidConnection(params, edges)) return;
-    setEdges((eds) => addEdge({
-      ...params,
-      animated: true,
-      markerEnd: { type: MarkerType.ArrowClosed },
-    }, eds));
+    setEdges((eds) => {
+      const newEdges = addEdge({
+        ...params,
+        animated: true,
+        markerEnd: { type: MarkerType.ArrowClosed },
+      }, eds);
+      return newEdges;
+    });
   }, [setEdges, edges]);
 
   const checkConnection = useCallback((conn: Edge | Connection) => {
@@ -155,8 +245,8 @@ export default function ControlFlowCanvas() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         isValidConnection={checkConnection}
         nodeTypes={nodeTypes}

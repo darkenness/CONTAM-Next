@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ReactEChartsCore from 'echarts-for-react';
 import { useAppStore } from '../../store/useAppStore';
+import { useCanvasStore } from '../../store/useCanvasStore';
 import { Plus, Trash2, Clock, Copy } from 'lucide-react';
 import type { Schedule, SchedulePoint } from '../../types';
 import WeekScheduleEditor from './WeekScheduleEditor';
@@ -68,15 +69,22 @@ function SingleScheduleEditor({ schedule, onUpdate, onDelete }: {
 }) {
   const [editingName, setEditingName] = useState(false);
 
+  // L-35: Sort by time and remove duplicate time points
+  const normalizePoints = (pts: SchedulePoint[]): SchedulePoint[] => {
+    const sorted = [...pts].sort((a, b) => a.time - b.time);
+    return sorted.filter((p, i) => i === 0 || p.time !== sorted[i - 1].time);
+  };
+
   const updatePoint = (idx: number, field: 'time' | 'value', val: number) => {
     const newPoints = [...schedule.points];
     newPoints[idx] = { ...newPoints[idx], [field]: val };
-    onUpdate({ ...schedule, points: newPoints });
+    onUpdate({ ...schedule, points: normalizePoints(newPoints) });
   };
 
   const addPoint = () => {
     const lastTime = schedule.points.length > 0 ? Math.max(...schedule.points.map((p) => p.time)) : 0;
-    onUpdate({ ...schedule, points: [...schedule.points, { time: lastTime + 600, value: 1 }] });
+    const newPoints = [...schedule.points, { time: lastTime + 600, value: 1 }];
+    onUpdate({ ...schedule, points: normalizePoints(newPoints) });
   };
 
   const removePoint = (idx: number) => {
@@ -175,6 +183,21 @@ export default function ScheduleEditor() {
     sources.forEach((src, idx) => {
       if (src.scheduleId === id) updateSource(idx, { scheduleId: -1 });
     });
+    // L-26: Unlink AHS systems that reference this schedule
+    const { ahsSystems, updateAHS } = useAppStore.getState();
+    ahsSystems.forEach((ahs) => {
+      if (ahs.outdoorAirScheduleId === id) updateAHS(ahs.id, { outdoorAirScheduleId: -1 });
+      if (ahs.supplyFlowScheduleId === id) updateAHS(ahs.id, { supplyFlowScheduleId: -1 });
+    });
+    // L-26: Unlink canvas placements that reference this schedule
+    const canvasState = useCanvasStore.getState();
+    for (const story of canvasState.stories) {
+      for (const p of story.placements) {
+        if (p.scheduleId === id) {
+          canvasState.updatePlacement(p.id, { scheduleId: undefined });
+        }
+      }
+    }
     removeSchedule(id);
   };
 

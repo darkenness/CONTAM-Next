@@ -1,7 +1,7 @@
 import { useAppStore } from '../../store/useAppStore';
-import { useCanvasStore } from '../../store/useCanvasStore';
 import { Plus, Trash2, Wind } from 'lucide-react';
 import type { AHSZoneConnection } from '../../types';
+import { useMergedRooms } from '../../hooks/useMergedRooms';
 
 function InputField({ label, value, onChange, unit, step }: {
   label: string; value: number; onChange: (v: number) => void; unit?: string; step?: string;
@@ -28,14 +28,13 @@ function ZoneConnectionEditor({ connections, onChange, label }: {
   onChange: (conns: AHSZoneConnection[]) => void;
   label: string;
 }) {
-  // Get zones from canvas store
-  const stories = useCanvasStore(s => s.stories);
-  const zones = stories.flatMap(s => s.zoneAssignments);
+  // M-14: Use merged room list (legacy + canvas)
+  const zones = useMergedRooms();
 
   const addConnection = () => {
     const firstZone = zones[0];
     if (!firstZone) return;
-    onChange([...connections, { zoneId: firstZone.zoneId, fraction: 1.0 }]);
+    onChange([...connections, { zoneId: firstZone.id, fraction: 1.0 }]);
   };
 
   const removeConnection = (idx: number) => {
@@ -62,7 +61,7 @@ function ZoneConnectionEditor({ connections, onChange, label }: {
             className="flex-1 px-1 py-0.5 text-[11px] border border-border rounded bg-background"
           >
             {zones.map(z => (
-              <option key={z.zoneId} value={z.zoneId}>{z.name}</option>
+              <option key={z.id} value={z.id}>{z.name}</option>
             ))}
           </select>
           <input
@@ -113,7 +112,7 @@ export default function AHSPanel() {
         <span className="text-xs font-bold text-foreground">空调系统 (AHS)</span>
         <button
           onClick={handleAdd}
-          className="ml-auto p-0.5 rounded hover:bg-emerald-50 text-muted-foreground hover:text-emerald-500"
+          className="ml-auto p-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-muted-foreground hover:text-emerald-500"
         >
           <Plus size={14} />
         </button>
@@ -154,8 +153,8 @@ export default function AHSPanel() {
               onChange={(v) => updateAHS(ahs.id, { exhaustFlow: Math.max(0, v) })} />
           </div>
 
-          <InputField label="送风温度" value={ahs.supplyTemperature} unit="K" step="0.5"
-            onChange={(v) => updateAHS(ahs.id, { supplyTemperature: Math.max(250, Math.min(350, v)) })} />
+          <InputField label="送风温度" value={+(ahs.supplyTemperature - 273.15).toFixed(2)} unit="°C" step="0.5"
+            onChange={(v) => updateAHS(ahs.id, { supplyTemperature: Math.max(250, Math.min(350, v + 273.15)) })} />
 
           {/* Zone connections */}
           <ZoneConnectionEditor

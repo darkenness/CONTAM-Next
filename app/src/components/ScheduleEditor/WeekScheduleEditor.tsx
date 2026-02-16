@@ -3,6 +3,7 @@ import { Plus, Trash2, Calendar, Tag } from 'lucide-react';
 import type { DayType, WeekSchedule } from '../../types';
 
 const DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+const DAY_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#ef4444'];
 
 const DEFAULT_DAY_TYPES: { name: string }[] = [
   { name: '工作日' },
@@ -114,6 +115,23 @@ function WeekScheduleSection() {
             </button>
           </div>
           <div className="px-2 py-1.5 flex flex-col gap-1">
+            {/* L-25: Visual week preview */}
+            <div className="flex gap-0.5 mb-1">
+              {DAY_NAMES.map((dayName, dayIdx) => {
+                const dtId = ws.dayTypes[dayIdx] ?? -1;
+                const dt = dayTypes.find(d => d.id === dtId);
+                return (
+                  <div key={dayIdx} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div
+                      className="w-full h-3 rounded-sm border border-border/50"
+                      style={{ backgroundColor: dt ? DAY_COLORS[dayIdx % DAY_COLORS.length] : 'var(--muted)' }}
+                      title={`${dayName}: ${dt?.name ?? '未指定'}`}
+                    />
+                    <span className="text-[8px] text-muted-foreground leading-none">{dayName.slice(1)}</span>
+                  </div>
+                );
+              })}
+            </div>
             {DAY_NAMES.map((dayName, dayIdx) => (
               <div key={dayIdx} className="flex items-center gap-2">
                 <span className="text-[10px] font-semibold text-muted-foreground w-8">{dayName}</span>

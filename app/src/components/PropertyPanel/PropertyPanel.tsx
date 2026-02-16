@@ -14,26 +14,7 @@ import AHSPanel from '../AHSPanel/AHSPanel';
 import FilterPanel from '../FilterPanel/FilterPanel';
 import LibraryManager from '../LibraryManager/LibraryManager';
 import { ZoneProperties, EdgeProperties, PlacementProperties, StoryProperties } from './ZoneProperties';
-
-function InputField({ label, value, onChange, unit, type = 'text', step }: {
-  label: string; value: string | number; onChange: (v: string) => void; unit?: string; type?: string; step?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
-      <div className="flex items-center gap-1">
-        <input
-          type={type}
-          value={value}
-          step={step}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 px-2 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring bg-background"
-        />
-        {unit && <span className="text-[10px] text-muted-foreground min-w-[24px]">{unit}</span>}
-      </div>
-    </label>
-  );
-}
+import { InputField } from '../ui/input-field';
 
 function NodeProperties() {
   const { nodes, selectedNodeId, updateNode, removeNode } = useAppStore();

@@ -1,16 +1,18 @@
 import { useEffect } from 'react';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { Button } from '../../components/ui/button';
-import { Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, ChevronUp, ChevronDown, Copy, Trash2, Maximize } from 'lucide-react';
 
 export function FloorSwitcher() {
   const stories = useCanvasStore(s => s.stories);
   const activeStoryId = useCanvasStore(s => s.activeStoryId);
   const setActiveStory = useCanvasStore(s => s.setActiveStory);
   const addStory = useCanvasStore(s => s.addStory);
+  const removeStory = useCanvasStore(s => s.removeStory);
+  const duplicateStory = useCanvasStore(s => s.duplicateStory);
+  const requestZoomToFit = useCanvasStore(s => s.requestZoomToFit);
 
   const activeIdx = stories.findIndex(s => s.id === activeStoryId);
-  const activeStory = stories[activeIdx];
 
   // PageUp/PageDown shortcuts for floor switching
   useEffect(() => {
@@ -32,8 +34,7 @@ export function FloorSwitcher() {
     return () => window.removeEventListener('keydown', handler);
   }, [activeIdx, stories, setActiveStory]);
 
-  if (stories.length <= 1 && !activeStory) return null;
-
+  // M-07: Always show floor switcher
   return (
     <div className="absolute top-3 right-3 z-10 flex flex-col items-center gap-0.5 bg-card/90 backdrop-blur-sm border border-border rounded-lg px-1 py-1 shadow-sm select-none">
       {/* Go up */}
@@ -76,15 +77,23 @@ export function FloorSwitcher() {
         <ChevronDown size={14} />
       </Button>
 
-      {/* Add floor */}
+      {/* H-06: Floor CRUD */}
       <div className="w-full h-px bg-border my-0.5" />
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={addStory}
-        title="添加楼层"
-      >
+      <Button variant="ghost" size="icon-sm" onClick={addStory} title="添加楼层">
         <Plus size={14} />
+      </Button>
+      <Button variant="ghost" size="icon-sm" onClick={() => duplicateStory(activeStoryId)} title="复制当前楼层">
+        <Copy size={14} />
+      </Button>
+      {stories.length > 1 && (
+        <Button variant="ghost" size="icon-sm" onClick={() => removeStory(activeStoryId)} title="删除当前楼层"
+          className="hover:bg-destructive/10 hover:text-destructive">
+          <Trash2 size={14} />
+        </Button>
+      )}
+      <div className="w-full h-px bg-border my-0.5" />
+      <Button variant="ghost" size="icon-sm" onClick={requestZoomToFit} title="缩放至适合">
+        <Maximize size={14} />
       </Button>
     </div>
   );

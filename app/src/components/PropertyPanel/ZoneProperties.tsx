@@ -1,7 +1,9 @@
 import { useCanvasStore } from '../../store/useCanvasStore';
+import { useAppStore } from '../../store/useAppStore';
 import { faceArea, getFaceVertices } from '../../model/geometry';
 import type { EdgePlacement } from '../../model/geometry';
-import { Trash2, Box } from 'lucide-react';
+import { Trash2, Box, CheckCircle2, AlertCircle } from 'lucide-react';
+import { InputField } from '../ui/input-field';
 
 const PLACEMENT_LABELS: Record<EdgePlacement['type'], string> = {
   door: '门',
@@ -15,26 +17,6 @@ const PLACEMENT_LABELS: Record<EdgePlacement['type'], string> = {
   srv: '自调节通风口',
   checkValve: '单向阀',
 };
-
-function InputField({ label, value, onChange, unit, type = 'text', step }: {
-  label: string; value: string | number; onChange: (v: string) => void; unit?: string; type?: string; step?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
-      <div className="flex items-center gap-1">
-        <input
-          type={type}
-          value={value}
-          step={step}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 px-2 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring bg-background"
-        />
-        {unit && <span className="text-[10px] text-muted-foreground min-w-[24px]">{unit}</span>}
-      </div>
-    </label>
-  );
-}
 
 export function ZoneProperties() {
   const selectedFaceId = useCanvasStore(s => s.selectedFaceId);
@@ -97,6 +79,7 @@ export function EdgeProperties() {
   const selectedEdgeId = useCanvasStore(s => s.selectedEdgeId);
   const story = useCanvasStore(s => s.getActiveStory());
   const removeEdge = useCanvasStore(s => s.removeEdge);
+  const updateEdge = useCanvasStore(s => s.updateEdge);
   const selectPlacement = useCanvasStore(s => s.selectPlacement);
 
   if (!selectedEdgeId) return null;
@@ -134,11 +117,43 @@ export function EdgeProperties() {
         </button>
       </div>
 
-      <div className="px-2 py-2 bg-muted rounded text-[11px] text-muted-foreground space-y-0.5">
+      <div className="px-2 py-2 bg-muted rounded text-[11px] text-muted-foreground space-y-1.5">
         <div>长度: {length.toFixed(2)} m</div>
-        <div>高度: {edge.wallHeight.toFixed(1)} m</div>
-        <div>厚度: {edge.wallThickness.toFixed(2)} m</div>
-        <div>类型: {edge.isExterior ? '外墙（面向室外）' : '内墙（共用墙）'}</div>
+        <label className="flex items-center gap-2">
+          <span className="w-10">高度:</span>
+          <input
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={edge.wallHeight}
+            onChange={(e) => updateEdge(selectedEdgeId, { wallHeight: parseFloat(e.target.value) || 3.0 })}
+            className="flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
+          />
+          <span>m</span>
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="w-10">厚度:</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            value={edge.wallThickness}
+            onChange={(e) => updateEdge(selectedEdgeId, { wallThickness: parseFloat(e.target.value) || 0.2 })}
+            className="flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
+          />
+          <span>m</span>
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="w-10">类型:</span>
+          <select
+            value={edge.isExterior ? 'exterior' : 'interior'}
+            onChange={(e) => updateEdge(selectedEdgeId, { isExterior: e.target.value === 'exterior' })}
+            className="flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
+          >
+            <option value="exterior">外墙（面向室外）</option>
+            <option value="interior">内墙（共用墙）</option>
+          </select>
+        </label>
       </div>
 
       {/* Connected zones info */}
@@ -240,8 +255,24 @@ export function PlacementProperties() {
         {!isSharedWall && !isExteriorWall && (
           <div className="text-amber-500">⚠ 未闭合墙壁上的组件</div>
         )}
-        <div>位置: α = {placement.alpha.toFixed(2)}</div>
+        {/* H-03: Editable alpha slider */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">位置 α</span>
+          <input
+            type="range"
+            min="0.05"
+            max="0.95"
+            step="0.01"
+            value={placement.alpha}
+            onChange={(e) => updatePlacement(selectedPlacementId, { alpha: parseFloat(e.target.value) })}
+            className="flex-1 h-1 accent-primary"
+          />
+          <span className="text-[10px] text-foreground font-mono w-8 text-right">{placement.alpha.toFixed(2)}</span>
+        </div>
       </div>
+
+      {/* M-03: Schedule binding */}
+      <ScheduleBinding placementId={selectedPlacementId} scheduleId={placement.scheduleId} />
 
       {/* Placement-specific parameters */}
       <div className="border-t border-border pt-2">
@@ -254,9 +285,29 @@ export function PlacementProperties() {
         <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">元件类型</span>
         <select
           value={placement.type}
-          onChange={(e) => updatePlacement(selectedPlacementId, {
-            type: e.target.value as EdgePlacement['type'],
-          })}
+          onChange={(e) => {
+            const newType = e.target.value as EdgePlacement['type'];
+            // Reset type-specific fields when switching type
+            updatePlacement(selectedPlacementId, {
+              type: newType,
+              isConfigured: false,
+              flowCoefficient: undefined,
+              flowExponent: undefined,
+              dischargeCd: undefined,
+              openingArea: undefined,
+              openingHeight: undefined,
+              maxFlow: undefined,
+              shutoffPressure: undefined,
+              damperFraction: undefined,
+              filterEfficiency: undefined,
+              ductDiameter: undefined,
+              ductRoughness: undefined,
+              ductSumK: undefined,
+              targetFlow: undefined,
+              pMin: undefined,
+              pMax: undefined,
+            });
+          }}
           className="px-2 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-ring bg-background"
         >
           <option value="door">门</option>
@@ -294,7 +345,41 @@ export function PlacementProperties() {
       />
 
       {/* Type-specific parameters */}
-      {(placement.type === 'door' || placement.type === 'crack' || placement.type === 'window') && (
+      {placement.type === 'door' && (
+        <>
+          <InputField
+            label="流量系数 (Cd)"
+            value={placement.dischargeCd ?? 0.65}
+            type="number"
+            step="0.01"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              dischargeCd: parseFloat(v) || 0.65, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="开口面积"
+            value={placement.openingArea ?? 1.8}
+            unit="m²"
+            type="number"
+            step="0.01"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              openingArea: parseFloat(v) || 1.8, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="开口高度"
+            value={placement.openingHeight ?? 2.0}
+            unit="m"
+            type="number"
+            step="0.1"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              openingHeight: parseFloat(v) || 2.0, isConfigured: true,
+            })}
+          />
+        </>
+      )}
+
+      {(placement.type === 'crack' || placement.type === 'window') && (
         <>
           <InputField
             label="流动系数 (C)"
@@ -337,6 +422,16 @@ export function PlacementProperties() {
             step="0.01"
             onChange={(v) => updatePlacement(selectedPlacementId, {
               openingArea: parseFloat(v) || 0.5, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="开口高度"
+            value={placement.openingHeight ?? 2.0}
+            unit="m"
+            type="number"
+            step="0.1"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              openingHeight: parseFloat(v) || 2.0, isConfigured: true,
             })}
           />
         </>
@@ -415,16 +510,141 @@ export function PlacementProperties() {
         </>
       )}
 
+      {placement.type === 'duct' && (
+        <>
+          <InputField
+            label="管径"
+            value={placement.ductDiameter ?? 0.2}
+            unit="m"
+            type="number"
+            step="0.01"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              ductDiameter: parseFloat(v) || 0.2, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="粗糙度"
+            value={placement.ductRoughness ?? 0.0001}
+            unit="m"
+            type="number"
+            step="0.00001"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              ductRoughness: parseFloat(v) || 0.0001, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="局部损失系数 (ΣK)"
+            value={placement.ductSumK ?? 0}
+            type="number"
+            step="0.1"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              ductSumK: parseFloat(v) || 0, isConfigured: true,
+            })}
+          />
+        </>
+      )}
+
+      {placement.type === 'srv' && (
+        <>
+          <InputField
+            label="目标流量"
+            value={placement.targetFlow ?? 0.01}
+            unit="m³/s"
+            type="number"
+            step="0.001"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              targetFlow: parseFloat(v) || 0.01, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="最小调节压差"
+            value={placement.pMin ?? 2.0}
+            unit="Pa"
+            type="number"
+            step="0.5"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              pMin: parseFloat(v) || 2.0, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="最大调节压差"
+            value={placement.pMax ?? 50.0}
+            unit="Pa"
+            type="number"
+            step="1"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              pMax: parseFloat(v) || 50.0, isConfigured: true,
+            })}
+          />
+        </>
+      )}
+
+      {placement.type === 'checkValve' && (
+        <>
+          <InputField
+            label="流动系数 (C)"
+            value={placement.flowCoefficient ?? 0.001}
+            type="number"
+            step="0.0001"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              flowCoefficient: parseFloat(v) || 0.001, isConfigured: true,
+            })}
+          />
+          <InputField
+            label="流动指数 (n)"
+            value={placement.flowExponent ?? 0.65}
+            type="number"
+            step="0.01"
+            onChange={(v) => updatePlacement(selectedPlacementId, {
+              flowExponent: Math.max(0.5, Math.min(1.0, parseFloat(v) || 0.65)),
+              isConfigured: true,
+            })}
+          />
+        </>
+      )}
+
       <div className="mt-1 px-2 py-1.5 bg-muted rounded text-[10px] text-muted-foreground">
-        ID: {placement.id} &nbsp;|&nbsp; 状态: {placement.isConfigured ? '✅ 已配置' : '🔴 未配置'}
+        ID: {placement.id} &nbsp;|&nbsp; 状态: {placement.isConfigured
+          ? <span className="inline-flex items-center gap-0.5 text-emerald-600"><CheckCircle2 size={12} /> 已配置</span>
+          : <span className="inline-flex items-center gap-0.5 text-destructive"><AlertCircle size={12} /> 未配置</span>
+        }
       </div>
     </div>
+  );
+}
+
+// M-03: Schedule binding dropdown for placements
+function ScheduleBinding({ placementId, scheduleId }: { placementId: string; scheduleId?: string }) {
+  const schedules = useAppStore(s => s.schedules);
+  const weekSchedules = useAppStore(s => s.weekSchedules);
+  const updatePlacement = useCanvasStore(s => s.updatePlacement);
+
+  const allSchedules = [
+    ...schedules.map(s => ({ id: s.id, name: s.name, type: '日' })),
+    ...weekSchedules.map(w => ({ id: w.id, name: w.name, type: '周' })),
+  ];
+
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">运行时间表</span>
+      <select
+        value={scheduleId ?? ''}
+        onChange={(e) => updatePlacement(placementId, { scheduleId: e.target.value || undefined })}
+        className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground"
+      >
+        <option value="">无（始终运行）</option>
+        {allSchedules.map(s => (
+          <option key={s.id} value={s.id}>[{s.type}] {s.name}</option>
+        ))}
+      </select>
+    </label>
   );
 }
 
 export function StoryProperties() {
   const story = useCanvasStore(s => s.getActiveStory());
   const updateStoryHeight = useCanvasStore(s => s.updateStoryHeight);
+  const renameStory = useCanvasStore(s => s.renameStory);
 
   if (!story) return null;
 
@@ -434,7 +654,7 @@ export function StoryProperties() {
       <InputField
         label="楼层名称"
         value={story.name}
-        onChange={() => {}}
+        onChange={(v) => renameStory(story.id, v)}
       />
       <InputField
         label="层高"

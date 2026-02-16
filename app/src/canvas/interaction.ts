@@ -9,13 +9,26 @@ import type { Geometry, GeoVertex, GeoEdge } from '../model/geometry';
 import { getFaceVertices } from '../model/geometry';
 
 // ── Lookup maps for O(1) vertex/edge access in hot paths ──
+// L-10: Cache maps per geometry arrays (reference equality) to avoid O(n) rebuilds per frame
+
+let _cachedVertices: readonly GeoVertex[] | null = null;
+let _cachedVertexMap: Map<string, GeoVertex> | null = null;
+
+let _cachedEdges: readonly GeoEdge[] | null = null;
+let _cachedEdgeMap: Map<string, GeoEdge> | null = null;
 
 function buildVertexMap(geo: Geometry): Map<string, GeoVertex> {
-  return new Map(geo.vertices.map(v => [v.id, v]));
+  if (geo.vertices === _cachedVertices && _cachedVertexMap) return _cachedVertexMap;
+  _cachedVertices = geo.vertices;
+  _cachedVertexMap = new Map(geo.vertices.map(v => [v.id, v]));
+  return _cachedVertexMap;
 }
 
 function buildEdgeMap(geo: Geometry): Map<string, GeoEdge> {
-  return new Map(geo.edges.map(e => [e.id, e]));
+  if (geo.edges === _cachedEdges && _cachedEdgeMap) return _cachedEdgeMap;
+  _cachedEdges = geo.edges;
+  _cachedEdgeMap = new Map(geo.edges.map(e => [e.id, e]));
+  return _cachedEdgeMap;
 }
 
 // ── Orthogonal constraint ──
@@ -28,7 +41,8 @@ export interface OrthoResult {
 
 /**
  * Constrain endpoint to orthogonal (horizontal or vertical) from start.
- * Vertex snapping takes priority if the snap target is also orthogonal.
+ * M-08: Vertex snapping ALWAYS takes priority over orthogonal constraint,
+ * enabling room closure even when the snap target isn't perfectly orthogonal.
  */
 export function constrainOrthogonal(
   startX: number, startY: number,
@@ -37,13 +51,10 @@ export function constrainOrthogonal(
   geo: Geometry,
   snapThreshold: number, // world units
 ): OrthoResult {
-  // 1. Check vertex snapping first
+  // 1. Vertex snapping — always wins (enables room closure)
   const snapCandidate = findNearestVertex(geo, mouseWX, mouseWY, snapThreshold);
   if (snapCandidate) {
-    // Only snap if it produces an orthogonal wall
-    if (Math.abs(snapCandidate.x - startX) < 1e-6 || Math.abs(snapCandidate.y - startY) < 1e-6) {
-      return { x: snapCandidate.x, y: snapCandidate.y, snappedVertexId: snapCandidate.id };
-    }
+    return { x: snapCandidate.x, y: snapCandidate.y, snappedVertexId: snapCandidate.id };
   }
 
   // 2. Orthogonal constraint: pick axis with larger delta
@@ -128,7 +139,9 @@ export function hitTestPlacement(
   wx: number, wy: number,
   camera: Camera2D,
 ): string | null {
-  const toleranceWorld = 10 / camera.zoom; // 10px tolerance
+  // M-10: Hit tolerance matches rendered icon size (Math.max(6, zoom * 0.18) px)
+  const iconScreenPx = Math.max(6, camera.zoom * 0.18);
+  const toleranceWorld = Math.max(10, iconScreenPx) / camera.zoom;
   const vertexMap = buildVertexMap(geo);
   const edgeMap = buildEdgeMap(geo);
 

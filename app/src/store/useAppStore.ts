@@ -94,7 +94,12 @@ export const useAppStore = create<AppState>()(temporal((set, get) => ({
   selectLink: (id) => set({ selectedLinkId: id, selectedNodeId: null }),
   setToolMode: (mode) => set({ toolMode: mode }),
 
-  setAmbient: (updates) => set((state) => ({ ...state, ...updates })),
+  setAmbient: (updates) => set((state) => ({
+    ambientTemperature: updates.ambientTemperature ?? state.ambientTemperature,
+    ambientPressure: updates.ambientPressure ?? state.ambientPressure,
+    windSpeed: updates.windSpeed ?? state.windSpeed,
+    windDirection: updates.windDirection ?? state.windDirection,
+  })),
   setResult: (result) => set({ result }),
   setIsRunning: (running) => set({ isRunning: running }),
   setError: (error) => set({ error }),

@@ -1,24 +1,51 @@
 import { useAppStore } from '../../store/useAppStore';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { Play, Save, FolderOpen, Undo2, Redo2, Trash2, Moon, Sun, FileDown } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { toast } from '../../hooks/use-toast';
-import { canvasToTopology, validateModel, steadyResultToCSV, transientResultToCSV } from '../../model/dataBridge';
+import { canvasToTopology, validateModel, validateTopology, steadyResultToCSV, transientResultToCSV } from '../../model/dataBridge';
 import { saveFile, openFile, downloadFile } from '../../utils/fileOps';
 
 export default function TopBar() {
   const { isRunning, clearAll, setResult, setIsRunning, setError, loadFromJson, species, setTransientResult, result, transientResult } = useAppStore();
   const setAppMode = useCanvasStore(s => s.setAppMode);
   const isTransient = species.length > 0;
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  const [isDark, setIsDark] = useState(() => {
+    // Persist dark mode preference
+    const saved = localStorage.getItem('contam-dark-mode');
+    if (saved !== null) {
+      const dark = saved === 'true';
+      if (dark && !document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.add('dark');
+      }
+      return dark;
+    }
+    return document.documentElement.classList.contains('dark');
+  });
   const hasResults = result !== null || transientResult !== null;
+
+  // L-28: Elapsed time counter during simulation
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (isRunning) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed(t => t + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [isRunning]);
 
   const toggleDark = useCallback(() => {
     document.documentElement.classList.toggle('dark');
-    setIsDark(!isDark);
+    const newDark = !isDark;
+    setIsDark(newDark);
+    localStorage.setItem('contam-dark-mode', String(newDark));
   }, [isDark]);
 
   const handleExportCSV = useCallback(async () => {
@@ -35,11 +62,11 @@ export default function TopBar() {
     // Validate model before running
     const { errors, warnings } = validateModel();
     if (errors.length > 0) {
-      toast({ title: '模型验证失败', description: errors[0], variant: 'destructive' });
+      toast({ title: '模型验证失败', description: errors.join('\n'), variant: 'destructive' });
       return;
     }
     if (warnings.length > 0) {
-      toast({ title: '模型警告', description: warnings[0] });
+      toast({ title: '模型警告', description: warnings.join('\n') });
     }
 
     setIsRunning(true);
@@ -51,9 +78,19 @@ export default function TopBar() {
       // Use canvas geometry → topology bridge
       const topology = canvasToTopology();
 
+      // L-36: Runtime structural validation before engine call
+      const topoErrors = validateTopology(topology as unknown as Record<string, unknown>);
+      if (topoErrors.length > 0) {
+        toast({ title: '拓扑结构错误', description: topoErrors.join('\n'), variant: 'destructive' });
+        setIsRunning(false);
+        return;
+      }
+
       if (window.__TAURI_INTERNALS__) {
         const { invoke } = await import('@tauri-apps/api/core');
-        const resultJson = await invoke<string>('run_engine', { input: JSON.stringify(topology) });
+        // L-27: 60s timeout for engine execution
+        const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('仿真超时（60秒），请检查模型复杂度或引擎状态')), 60000));
+        const resultJson = await Promise.race([invoke<string>('run_engine', { input: JSON.stringify(topology) }), timeout]);
         const parsed = JSON.parse(resultJson);
         if (parsed.timeSeries) {
           setTransientResult(parsed);
@@ -63,6 +100,8 @@ export default function TopBar() {
         toast({ title: '求解完成', description: parsed.timeSeries ? `瞬态仿真完成，${parsed.totalSteps} 步` : '稳态收敛', variant: 'success' });
         setAppMode('results');
       } else {
+        // C-05: Browser mode — warn user that results are mock data
+        toast({ title: '演示模式', description: '浏览器环境无法运行真实引擎，显示的是模拟数据。请使用桌面版获取真实结果。', variant: 'destructive' });
         await new Promise((r) => setTimeout(r, 500));
         if (isTransient) {
           const numSteps = 10;
@@ -161,8 +200,11 @@ export default function TopBar() {
       </Button>
 
       {isRunning && (
-        <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden ml-1.5">
-          <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '100%' }} />
+        <div className="flex items-center gap-1.5 ml-1.5">
+          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '100%' }} />
+          </div>
+          <span className="text-[10px] font-data text-muted-foreground tabular-nums">{elapsed}s</span>
         </div>
       )}
 

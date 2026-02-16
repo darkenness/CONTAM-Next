@@ -10,6 +10,9 @@ import {
 // ── Tool mode ──
 export type ToolMode = 'select' | 'wall' | 'rect' | 'door' | 'window' | 'erase' | 'pan';
 
+// H-10: All placeable element types
+export type PlacementToolType = EdgePlacement['type'];
+
 // ── App mode (edit vs results) ──
 export type AppMode = 'edit' | 'results';
 
@@ -44,6 +47,7 @@ export interface CanvasState extends SelectionState, HoverState {
   // Mode
   appMode: AppMode;
   toolMode: ToolMode;
+  activePlacementType: PlacementToolType; // H-10: which element type to place
 
   // Building data
   stories: Story[];
@@ -63,6 +67,7 @@ export interface CanvasState extends SelectionState, HoverState {
 
   // Camera (2D)
   cameraZoom: number;
+  zoomToFitCounter: number;
 
   // Sidebar
   sidebarOpen: boolean;
@@ -77,6 +82,7 @@ export interface CanvasState extends SelectionState, HoverState {
   // Actions - Mode
   setAppMode: (mode: AppMode) => void;
   setToolMode: (mode: ToolMode) => void;
+  setActivePlacementType: (type: PlacementToolType) => void;
 
   // Actions - Selection
   selectEdge: (id: string | null) => void;
@@ -87,6 +93,7 @@ export interface CanvasState extends SelectionState, HoverState {
   // Actions - Hover
   setHoveredEdge: (id: string | null) => void;
   setHoveredFace: (id: string | null) => void;
+  setHoveredPlacement: (id: string | null) => void;
   setCursorWorld: (pos: { x: number; y: number; z?: number } | null) => void;
   setCursorGrid: (pos: { x: number; y: number } | null) => void;
 
@@ -98,7 +105,9 @@ export interface CanvasState extends SelectionState, HoverState {
 
   // Actions - Building
   addWall: (x1: number, y1: number, x2: number, y2: number) => void;
+  addRect: (x1: number, y1: number, x2: number, y2: number) => void;
   removeEdge: (edgeId: string) => void;
+  updateEdge: (edgeId: string, updates: Partial<Pick<import('../model/geometry').GeoEdge, 'wallHeight' | 'wallThickness' | 'isExterior'>>) => void;
   getActiveGeometry: () => Geometry;
   getActiveStory: () => Story;
 
@@ -106,6 +115,9 @@ export interface CanvasState extends SelectionState, HoverState {
   addStory: () => void;
   setActiveStory: (id: string) => void;
   updateStoryHeight: (id: string, height: number) => void;
+  removeStory: (storyId: string) => void;
+  renameStory: (storyId: string, name: string) => void;
+  duplicateStory: (storyId: string) => void;
 
   // Actions - Zone assignment
   assignZone: (faceId: string, name: string, temperature?: number) => void;
@@ -129,6 +141,7 @@ export interface CanvasState extends SelectionState, HoverState {
 
   // Actions - Camera
   setCameraZoom: (zoom: number) => void;
+  requestZoomToFit: () => void;
 
   // Actions - Sidebar
   setSidebarOpen: (open: boolean) => void;
@@ -159,14 +172,49 @@ function getNextZoneId(stories: import('../model/geometry').Story[]): number {
   return maxId + 1;
 }
 
-export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
+// ── Zone color palette ──
+const ZONE_COLORS = [
+  '#93c5fd', '#86efac', '#fcd34d', '#fca5a5', '#c4b5fd',
+  '#67e8f9', '#fdba74', '#f9a8d4', '#a5b4fc', '#6ee7b7',
+];
+
+/** L-29: Extracted helper — auto-assign zones for new faces, prune stale assignments */
+function autoAssignZones(
+  geo: Geometry,
+  story: Story,
+  stories: Story[],
+): ZoneAssignment[] {
+  const existingFaceIds = new Set(story.zoneAssignments.map(z => z.faceId));
+  const newAssignments = [...story.zoneAssignments];
+  let nextId = getNextZoneId(stories);
+  for (const face of geo.faces) {
+    if (!existingFaceIds.has(face.id)) {
+      const area = faceArea(geo, face);
+      newAssignments.push({
+        faceId: face.id,
+        zoneId: nextId++,
+        name: `房间 ${newAssignments.length + 1}`,
+        temperature: 293.15,
+        volume: area * story.floorToCeilingHeight,
+        color: ZONE_COLORS[newAssignments.length % ZONE_COLORS.length],
+      });
+    }
+  }
+  const validFaceIds = new Set(geo.faces.map(f => f.id));
+  return newAssignments.filter(z => validFaceIds.has(z.faceId));
+}
+
+export const useCanvasStore = create<CanvasState>()(temporal((set, get) => {
+  const initialStory = createDefaultStory(0);
+  return {
   // Mode
   appMode: 'edit',
   toolMode: 'select',
+  activePlacementType: 'door' as PlacementToolType,
 
   // Building data
-  stories: [createDefaultStory(0)],
-  activeStoryId: '',
+  stories: [initialStory],
+  activeStoryId: initialStory.id,
 
   // Selection
   selectedEdgeId: null,
@@ -195,6 +243,7 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
 
   // Camera (2D)
   cameraZoom: 50,
+  zoomToFitCounter: 0,
 
   // Sidebar
   sidebarOpen: false,
@@ -212,6 +261,7 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
     toolMode: mode,
     wallPreview: { startX: 0, startY: 0, endX: 0, endY: 0, active: false },
   }),
+  setActivePlacementType: (type) => set({ activePlacementType: type }),
 
   // ── Selection actions ──
   selectEdge: (id) => set({
@@ -245,6 +295,7 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
   // ── Hover actions ──
   setHoveredEdge: (id) => set({ hoveredEdgeId: id }),
   setHoveredFace: (id) => set({ hoveredFaceId: id }),
+  setHoveredPlacement: (id) => set({ hoveredPlacementId: id }),
   setCursorWorld: (pos) => set({ cursorWorld: pos }),
   setCursorGrid: (pos) => set({ cursorGrid: pos }),
 
@@ -280,31 +331,14 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
     geoAddWall(geo, wp.startX, wp.startY, wp.endX, wp.endY, story.floorToCeilingHeight);
     rebuildFaces(geo);
 
-    // Auto-assign zones for new faces
-    const existingFaceIds = new Set(story.zoneAssignments.map(z => z.faceId));
-    const newAssignments = [...story.zoneAssignments];
-    let nextId = getNextZoneId(stories);
-    for (const face of geo.faces) {
-      if (!existingFaceIds.has(face.id)) {
-        const area = faceArea(geo, face);
-        newAssignments.push({
-          faceId: face.id,
-          zoneId: nextId++,
-          name: `房间 ${newAssignments.length + 1}`,
-          temperature: 293.15,
-          volume: area * story.floorToCeilingHeight,
-          color: ZONE_COLORS[newAssignments.length % ZONE_COLORS.length],
-        });
-      }
-    }
-    const validFaceIds = new Set(geo.faces.map(f => f.id));
     story.geometry = geo;
-    story.zoneAssignments = newAssignments.filter(z => validFaceIds.has(z.faceId));
+    story.zoneAssignments = autoAssignZones(geo, story, stories);
     stories[storyIdx] = story;
 
     set({
       stories,
-      wallPreview: { startX: 0, startY: 0, endX: 0, endY: 0, active: false },
+      // Chain wall: start next wall from the end of the confirmed wall
+      wallPreview: { startX: wp.endX, startY: wp.endY, endX: wp.endX, endY: wp.endY, active: true },
     });
   },
 
@@ -320,31 +354,34 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
     geoAddWall(geo, x1, y1, x2, y2, story.floorToCeilingHeight);
     rebuildFaces(geo);
 
-    // Auto-assign zones for new faces
-    const existingFaceIds = new Set(story.zoneAssignments.map(z => z.faceId));
-    const newAssignments = [...story.zoneAssignments];
-    let nextId = getNextZoneId(stories);
-    for (const face of geo.faces) {
-      if (!existingFaceIds.has(face.id)) {
-        const area = faceArea(geo, face);
-        newAssignments.push({
-          faceId: face.id,
-          zoneId: nextId++,
-          name: `房间 ${newAssignments.length + 1}`,
-          temperature: 293.15,
-          volume: area * story.floorToCeilingHeight,
-          color: ZONE_COLORS[newAssignments.length % ZONE_COLORS.length],
-        });
-      }
-    }
-    // Remove assignments for faces that no longer exist
-    const validFaceIds = new Set(geo.faces.map(f => f.id));
-    const filteredAssignments = newAssignments.filter(z => validFaceIds.has(z.faceId));
-
     story.geometry = geo;
-    story.zoneAssignments = filteredAssignments;
+    story.zoneAssignments = autoAssignZones(geo, story, stories);
     stories[storyIdx] = story;
 
+    return { stories };
+  }),
+
+  // Atomic rect: 4 walls in one undo step
+  addRect: (x1, y1, x2, y2) => set((state) => {
+    const stories = [...state.stories];
+    const storyIdx = stories.findIndex(s => s.id === state.activeStoryId);
+    if (storyIdx === -1) return {};
+
+    const story = { ...stories[storyIdx] };
+    const geo = structuredClone(story.geometry);
+    const h = story.floorToCeilingHeight;
+
+    const minX = Math.min(x1, x2), minY = Math.min(y1, y2);
+    const maxX = Math.max(x1, x2), maxY = Math.max(y1, y2);
+    geoAddWall(geo, minX, minY, maxX, minY, h);
+    geoAddWall(geo, maxX, minY, maxX, maxY, h);
+    geoAddWall(geo, maxX, maxY, minX, maxY, h);
+    geoAddWall(geo, minX, maxY, minX, minY, h);
+    rebuildFaces(geo);
+
+    story.geometry = geo;
+    story.zoneAssignments = autoAssignZones(geo, story, stories);
+    stories[storyIdx] = story;
     return { stories };
   }),
 
@@ -375,6 +412,23 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
     };
   }),
 
+  // M-02: Update edge properties
+  updateEdge: (edgeId, updates) => set((state) => {
+    const stories = [...state.stories];
+    const storyIdx = stories.findIndex(s => s.id === state.activeStoryId);
+    if (storyIdx === -1) return {};
+
+    const story = { ...stories[storyIdx] };
+    const geo = structuredClone(story.geometry);
+    const edge = geo.edges.find(e => e.id === edgeId);
+    if (!edge) return {};
+
+    Object.assign(edge, updates);
+    story.geometry = geo;
+    stories[storyIdx] = story;
+    return { stories };
+  }),
+
   getActiveGeometry: () => {
     const state = get();
     const story = state.stories.find(s => s.id === state.activeStoryId);
@@ -397,8 +451,52 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
   }),
   setActiveStory: (id) => set({ activeStoryId: id, selectedEdgeId: null, selectedFaceId: null, selectedPlacementId: null }),
   updateStoryHeight: (id, height) => set((state) => ({
-    stories: state.stories.map(s => s.id === id ? { ...s, floorToCeilingHeight: height } : s),
+    stories: state.stories.map(s => {
+      if (s.id !== id) return s;
+      const updated = { ...s, floorToCeilingHeight: height };
+      // L-18: Recalculate zone volumes when height changes
+      updated.zoneAssignments = updated.zoneAssignments.map(z => {
+        const face = updated.geometry.faces.find(f => f.id === z.faceId);
+        if (!face) return z;
+        const area = faceArea(updated.geometry, face);
+        return { ...z, volume: area * height };
+      });
+      return updated;
+    }),
   })),
+
+  // H-06: Story CRUD
+  removeStory: (storyId) => set((state) => {
+    if (state.stories.length <= 1) return {}; // keep at least one story
+    const filtered = state.stories.filter(s => s.id !== storyId);
+    const newActive = state.activeStoryId === storyId ? filtered[0].id : state.activeStoryId;
+    return { stories: filtered, activeStoryId: newActive, selectedEdgeId: null, selectedFaceId: null, selectedPlacementId: null };
+  }),
+  renameStory: (storyId, name) => set((state) => ({
+    stories: state.stories.map(s => s.id === storyId ? { ...s, name } : s),
+  })),
+  duplicateStory: (storyId) => set((state) => {
+    const source = state.stories.find(s => s.id === storyId);
+    if (!source) return {};
+    const maxLevel = state.stories.reduce((max, s) => Math.max(max, s.level), -1);
+    const newId = generateId('story_');
+    let nextZoneId = getNextZoneId(state.stories);
+    const newStory: Story = {
+      ...structuredClone(source),
+      id: newId,
+      name: `${source.name} (副本)`,
+      level: maxLevel + 1,
+    };
+    // Reassign zone IDs to avoid collisions
+    for (const z of newStory.zoneAssignments) {
+      z.zoneId = nextZoneId++;
+    }
+    // Regenerate placement IDs
+    for (const p of newStory.placements) {
+      p.id = generateId('p_');
+    }
+    return { stories: [...state.stories, newStory], activeStoryId: newId };
+  }),
 
   // ── Zone assignment ──
   assignZone: (faceId, name, temperature = 293.15) => set((state) => {
@@ -460,10 +558,17 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
     const edge = getEdge(story.geometry, edgeId);
     if (!edge) return {};
 
+    // L-13: Reject duplicate placement at same position on same edge
+    const clampedAlpha = Math.max(0, Math.min(1, alpha));
+    const duplicate = story.placements.find(
+      p => p.edgeId === edgeId && Math.abs(p.alpha - clampedAlpha) < 0.02
+    );
+    if (duplicate) return {};
+
     const placement: EdgePlacement = {
       id: generateId('p_'),
       edgeId,
-      alpha: Math.max(0, Math.min(1, alpha)),
+      alpha: clampedAlpha,
       type,
       isConfigured: false,
     };
@@ -519,6 +624,7 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
 
   // ── Camera ──
   setCameraZoom: (zoom) => set({ cameraZoom: zoom }),
+  requestZoomToFit: () => set((state) => ({ zoomToFitCounter: state.zoomToFitCounter + 1 })),
 
   // ── Sidebar ──
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -560,16 +666,6 @@ export const useCanvasStore = create<CanvasState>()(temporal((set, get) => ({
       calibrationPoints: null,
     });
   },
-}), { limit: 100 }));
+}; }), { limit: 100 }));
 
-// Initialize activeStoryId
-const initialStories = useCanvasStore.getState().stories;
-if (initialStories.length > 0 && !useCanvasStore.getState().activeStoryId) {
-  useCanvasStore.setState({ activeStoryId: initialStories[0].id });
-}
-
-// ── Zone color palette ──
-const ZONE_COLORS = [
-  '#93c5fd', '#86efac', '#fcd34d', '#fca5a5', '#c4b5fd',
-  '#67e8f9', '#fdba74', '#f9a8d4', '#a5b4fc', '#6ee7b7',
-];
+// activeStoryId is now initialized inline — no post-init patch needed

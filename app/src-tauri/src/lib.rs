@@ -3,8 +3,10 @@ use std::process::Command;
 #[tauri::command]
 fn run_engine(input: String) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
-    let input_path = temp_dir.join("contam_input.json");
-    let output_path = temp_dir.join("contam_output.json");
+    // C-06: Use UUID to avoid temp file collisions from concurrent runs
+    let run_id = uuid::Uuid::new_v4().to_string();
+    let input_path = temp_dir.join(format!("contam_input_{}.json", run_id));
+    let output_path = temp_dir.join(format!("contam_output_{}.json", run_id));
 
     // Write input JSON to temp file
     std::fs::write(&input_path, &input)
@@ -42,23 +44,26 @@ fn run_engine(input: String) -> Result<String, String> {
 }
 
 fn find_engine_path() -> String {
+    // M-19: Cross-platform executable name
+    let exe_name = if cfg!(target_os = "windows") { "contam_engine.exe" } else { "contam_engine" };
+
     // Try relative to current exe first
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let candidate = exe_dir.join("contam_engine.exe");
+            let candidate = exe_dir.join(exe_name);
             if candidate.exists() {
                 return candidate.to_string_lossy().to_string();
             }
             // Also check parent directory (for dev builds)
             if let Some(parent) = exe_dir.parent() {
-                let candidate = parent.join("contam_engine.exe");
+                let candidate = parent.join(exe_name);
                 if candidate.exists() {
                     return candidate.to_string_lossy().to_string();
                 }
             }
         }
     }
-    // Fallback: assume it's in PATH or use hardcoded dev path
+    // Fallback: assume it's in PATH
     "contam_engine".to_string()
 }
 

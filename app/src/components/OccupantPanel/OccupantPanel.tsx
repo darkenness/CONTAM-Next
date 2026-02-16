@@ -1,10 +1,12 @@
 import { useAppStore } from '../../store/useAppStore';
 import { Plus, Trash2, User, Clock } from 'lucide-react';
 import type { OccupantZoneAssignment } from '../../types';
+import { useMergedRooms } from '../../hooks/useMergedRooms';
 
 export default function OccupantPanel() {
-  const { occupants, addOccupant, removeOccupant, updateOccupant, nodes, species, addSource } = useAppStore();
-  const rooms = nodes.filter((n) => n.type === 'normal');
+  const { occupants, addOccupant, removeOccupant, updateOccupant, species, addSource } = useAppStore();
+  // H-12 + M-13: use unified merged room list
+  const rooms = useMergedRooms();
 
   const handleAdd = () => {
     const nextId = occupants.length > 0 ? Math.max(...occupants.map((o) => o.id)) + 1 : 0;
@@ -62,6 +64,12 @@ export default function OccupantPanel() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   };
 
+  // L-23: Parse HH:MM string to seconds
+  const parseTime = (hhmm: string): number => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return (h || 0) * 3600 + (m || 0) * 60;
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -69,7 +77,7 @@ export default function OccupantPanel() {
         <span className="text-xs font-bold text-foreground">人员</span>
         <button
           onClick={handleAdd}
-          className="ml-auto p-0.5 rounded hover:bg-indigo-50 text-muted-foreground hover:text-indigo-500"
+          className="ml-auto p-0.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-muted-foreground hover:text-indigo-500"
         >
           <Plus size={14} />
         </button>
@@ -136,7 +144,7 @@ export default function OccupantPanel() {
               <span className="text-[11px] font-medium text-muted-foreground">移动时间表</span>
               <button
                 onClick={() => addScheduleEntry(occ.id)}
-                className="ml-auto p-0.5 rounded hover:bg-teal-50 text-muted-foreground hover:text-teal-500"
+                className="ml-auto p-0.5 rounded hover:bg-teal-50 dark:hover:bg-teal-950/30 text-muted-foreground hover:text-teal-500"
               >
                 <Plus size={11} />
               </button>
@@ -149,21 +157,17 @@ export default function OccupantPanel() {
             {occ.schedule.map((entry, idx) => (
               <div key={idx} className="flex items-center gap-1 py-0.5 text-[11px]">
                 <input
-                  type="number"
-                  step="60"
-                  value={entry.startTime}
-                  onChange={(e) => updateScheduleEntry(occ.id, idx, { startTime: parseFloat(e.target.value) || 0 })}
-                  title={formatTime(entry.startTime)}
-                  className="w-14 px-1 py-0.5 text-[11px] border border-border rounded bg-background text-center"
+                  type="time"
+                  value={formatTime(entry.startTime)}
+                  onChange={(e) => updateScheduleEntry(occ.id, idx, { startTime: parseTime(e.target.value) })}
+                  className="w-16 px-1 py-0.5 text-[11px] border border-border rounded bg-background text-center"
                 />
                 <span className="text-muted-foreground">→</span>
                 <input
-                  type="number"
-                  step="60"
-                  value={entry.endTime}
-                  onChange={(e) => updateScheduleEntry(occ.id, idx, { endTime: parseFloat(e.target.value) || 3600 })}
-                  title={formatTime(entry.endTime)}
-                  className="w-14 px-1 py-0.5 text-[11px] border border-border rounded bg-background text-center"
+                  type="time"
+                  value={formatTime(entry.endTime)}
+                  onChange={(e) => updateScheduleEntry(occ.id, idx, { endTime: parseTime(e.target.value) })}
+                  className="w-16 px-1 py-0.5 text-[11px] border border-border rounded bg-background text-center"
                 />
                 <select
                   value={entry.zoneId}

@@ -26,7 +26,12 @@
                     "temperature": { "type": "number", "description": "K" },
                     "elevation": { "type": "number", "description": "m" },
                     "volume": { "type": "number", "description": "m³" },
-                    "pressure": { "type": "number", "description": "Pa gauge" }
+                    "pressure": { "type": "number", "description": "Pa gauge" },
+                    "initialConcentrations": {
+                        "type": "object",
+                        "additionalProperties": { "type": "number" },
+                        "description": "Per-species initial concentrations (speciesId → kg/m³)"
+                    }
                 }
             }
         },
@@ -44,7 +49,7 @@
                         "type": "object",
                         "required": ["type"],
                         "properties": {
-                            "type": { "type": "string", "enum": ["PowerLawOrifice", "TwoWayFlow", "Fan", "Duct", "Damper", "Filter"] },
+                            "type": { "type": "string", "enum": ["PowerLawOrifice", "TwoWayFlow", "Fan", "Duct", "Damper", "Filter", "SelfRegulatingVent", "CheckValve", "SupplyDiffuser", "ReturnGrille"] },
                             "C": { "type": "number", "description": "Flow coefficient (PowerLawOrifice/Filter)" },
                             "n": { "type": "number", "description": "Flow exponent 0.5-1.0" },
                             "Cd": { "type": "number", "description": "Discharge coefficient (TwoWayFlow)" },
@@ -58,7 +63,11 @@
                             "sumK": { "type": "number", "description": "Minor loss coefficients (Duct)" },
                             "Cmax": { "type": "number", "description": "Max flow coefficient (Damper)" },
                             "fraction": { "type": "number", "description": "Opening fraction 0-1 (Damper)" },
-                            "efficiency": { "type": "number", "description": "Removal efficiency 0-1 (Filter)" }
+                            "efficiency": { "type": "number", "description": "Removal efficiency 0-1 (Filter)" },
+                            "targetFlow": { "type": "number", "description": "m³/s (SelfRegulatingVent)" },
+                            "pMin": { "type": "number", "description": "Pa minimum pressure (SelfRegulatingVent)" },
+                            "pMax": { "type": "number", "description": "Pa maximum pressure (SelfRegulatingVent)" },
+                            "height": { "type": "number", "description": "m opening height (TwoWayFlow)" }
                         }
                     }
                 }

@@ -1,21 +1,8 @@
 import { useAppStore } from '../../store/useAppStore';
-import { useCanvasStore } from '../../store/useCanvasStore';
 import { Plus, Trash2, FlaskConical, Flame, Clock } from 'lucide-react';
+import { useMergedRooms } from '../../hooks/useMergedRooms';
 
-function InputField({ label, value, onChange, unit, type = 'text', step }: {
-  label: string; value: string | number; onChange: (v: string) => void; unit?: string; type?: string; step?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">{label}</span>
-      <div className="flex items-center gap-1">
-        <input type={type} value={value} step={step} onChange={(e) => onChange(e.target.value)}
-          className="flex-1 px-2 py-1 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-ring bg-background" />
-        {unit && <span className="text-[10px] text-muted-foreground min-w-[24px]">{unit}</span>}
-      </div>
-    </label>
-  );
-}
+import { InputField } from '../ui/input-field';
 
 const POLLUTANT_TEMPLATES: { name: string; molarMass: number; decayRate: number; outdoorConc: number; label: string }[] = [
   { name: 'CO',   molarMass: 0.028, decayRate: 0,      outdoorConc: 0,       label: '一氧化碳' },
@@ -111,19 +98,9 @@ function SpeciesSection() {
 }
 
 function SourceSection() {
-  const { sources, addSource, removeSource, updateSource, nodes, species } = useAppStore();
-  const canvasStories = useCanvasStore(s => s.stories);
-
-  // Unified room list: merge legacy AppStore nodes + canvas zone assignments
-  const legacyRooms = nodes.filter((n) => n.type === 'normal').map(n => ({ id: n.id, name: n.name }));
-  const canvasRooms = canvasStories.flatMap(s =>
-    s.zoneAssignments.map(z => ({ id: z.zoneId, name: z.name }))
-  );
-  // Deduplicate by ID, prefer canvas zones
-  const roomMap = new Map<number, { id: number; name: string }>();
-  for (const r of legacyRooms) roomMap.set(r.id, r);
-  for (const r of canvasRooms) roomMap.set(r.id, r);
-  const rooms = Array.from(roomMap.values());
+  const { sources, addSource, removeSource, updateSource, species } = useAppStore();
+  // M-13: Use unified merged room list
+  const rooms = useMergedRooms();
 
   const handleAdd = () => {
     if (rooms.length === 0 || species.length === 0) return;
@@ -154,7 +131,7 @@ function SourceSection() {
       )}
 
       {sources.map((src, idx) => {
-        const zone = nodes.find((n) => n.id === src.zoneId);
+        const zone = rooms.find((r) => r.id === src.zoneId);
         const sp = species.find((s) => s.id === src.speciesId);
         return (
           <div key={idx} className="border border-border rounded-md p-2 flex flex-col gap-1.5 bg-card">

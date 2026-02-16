@@ -13,9 +13,10 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { useAppStore } from '../store/useAppStore';
+import { toast } from '../hooks/use-toast';
 import type { Camera2D } from './camera2d';
 import {
-  DEFAULT_CAMERA,
+  DEFAULT_CAMERA, ZOOM_MIN, ZOOM_MAX,
   screenToWorld, zoomAtPoint, snapToGrid, screenDistToWorld,
 } from './camera2d';
 import {
@@ -25,6 +26,8 @@ import {
   drawFlowArrows, drawPressureLabels, drawConcentrationHeatmap,
   drawBackgroundImage, drawWindPressureVectors,
   drawWallDimensions, drawZoneAreaLabels, drawCalibrationOverlay,
+  drawPlacementPreview, drawEraseHighlight,
+  drawGhostFloor,
   type ThemeColors,
   type EdgeFlowResult,
   type ZoneConcentrationResult,
@@ -83,23 +86,69 @@ export default function Canvas2D() {
   // Mark dirty when tool/mode changes
   useEffect(() => { dirtyRef.current = true; }, [toolMode, appMode, gridSize, showGrid]);
 
-  // ── Load background image ──
+  // L-09: Sync store cameraZoom → ref (for ZoomControls button clicks)
+  const storeCameraZoom = useCanvasStore(s => s.cameraZoom);
   useEffect(() => {
-    const state = useCanvasStore.getState();
-    const story = state.stories.find(s => s.id === state.activeStoryId);
-    const url = story?.backgroundImage?.url;
-    if (!url) {
+    if (Math.abs(cameraRef.current.zoom - storeCameraZoom) > 0.01) {
+      cameraRef.current = { ...cameraRef.current, zoom: storeCameraZoom };
+      dirtyRef.current = true;
+    }
+  }, [storeCameraZoom]);
+
+  // ── Load background image ──
+  const activeStoryId = useCanvasStore(s => s.activeStoryId);
+  const bgImageUrl = useCanvasStore(s => {
+    const story = s.stories.find(st => st.id === s.activeStoryId);
+    return story?.backgroundImage?.url ?? null;
+  });
+  useEffect(() => {
+    if (!bgImageUrl) {
       bgImageRef.current = null;
       return;
     }
-    if (bgImageRef.current?.src === url) return;
+    if (bgImageRef.current?.src === bgImageUrl) return;
     const img = new Image();
     img.onload = () => {
       bgImageRef.current = img;
       dirtyRef.current = true;
     };
-    img.src = url;
-  });
+    img.src = bgImageUrl;
+  }, [bgImageUrl]);
+
+  // L-08: Zoom-to-fit — compute bounding box of all vertices and center camera
+  const zoomToFitCounter = useCanvasStore(s => s.zoomToFitCounter);
+  useEffect(() => {
+    if (zoomToFitCounter === 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const state = useCanvasStore.getState();
+    const story = state.stories.find(s => s.id === state.activeStoryId);
+    if (!story) return;
+    const verts = story.geometry.vertices;
+    if (verts.length === 0) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const v of verts) {
+      if (v.x < minX) minX = v.x;
+      if (v.y < minY) minY = v.y;
+      if (v.x > maxX) maxX = v.x;
+      if (v.y > maxY) maxY = v.y;
+    }
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const padding = 60; // px margin
+    const bboxW = maxX - minX || 1;
+    const bboxH = maxY - minY || 1;
+    const zoom = Math.min(
+      (w - padding * 2) / bboxW,
+      (h - padding * 2) / bboxH,
+    );
+    const clampedZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    cameraRef.current = { panX: -cx * clampedZoom, panY: -cy * clampedZoom, zoom: clampedZoom };
+    useCanvasStore.getState().setCameraZoom(clampedZoom);
+    dirtyRef.current = true;
+  }, [zoomToFitCounter]);
 
   // ── DPI-aware canvas sizing ──
   const resizeCanvas = useCallback(() => {
@@ -167,6 +216,15 @@ export default function Canvas2D() {
       drawDotGrid(ctx, camera, cssW, cssH, gridSize, colors);
     }
 
+    // 1.5 M-06: Ghost adjacent floors
+    const activeLevel = story.level;
+    for (const s of state.stories) {
+      if (s.id === story.id) continue;
+      if (Math.abs(s.level - activeLevel) === 1) {
+        drawGhostFloor(ctx, s.geometry, camera, cssW, cssH);
+      }
+    }
+
     // 2. Zone fills
     drawZones(ctx, geo, story.zoneAssignments, camera, cssW, cssH,
       state.selectedFaceId, state.hoveredFaceId, colors);
@@ -181,6 +239,28 @@ export default function Canvas2D() {
     // 5. Placements (doors, windows, etc.)
     drawPlacements(ctx, geo, story.placements, camera, cssW, cssH,
       state.selectedPlacementId, colors);
+
+    // 5a. H-02: Placement preview (ghost icon on hovered edge in door/window mode)
+    if (['door', 'window'].includes(state.toolMode) && state.hoveredEdgeId) {
+      const { wx: cwx, wy: cwy } = screenToWorld(
+        cursorScreenRef.current.x, cursorScreenRef.current.y,
+        camera, cssW, cssH,
+      );
+      const previewAlpha = computeAlphaOnEdge(geo, state.hoveredEdgeId, cwx, cwy);
+      drawPlacementPreview(ctx, geo, state.hoveredEdgeId, previewAlpha,
+        state.activePlacementType, camera, cssW, cssH, colors);
+    }
+
+    // 5b. H-04: Erase hover highlight (red overlay on target)
+    if (state.toolMode === 'erase') {
+      if (state.hoveredPlacementId) {
+        drawEraseHighlight(ctx, geo, story.placements, 'placement',
+          state.hoveredPlacementId, camera, cssW, cssH);
+      } else if (state.hoveredEdgeId) {
+        drawEraseHighlight(ctx, geo, story.placements, 'edge',
+          state.hoveredEdgeId, camera, cssW, cssH);
+      }
+    }
 
     // 6. Wall preview (dashed line)
     if (state.wallPreview.active && state.toolMode === 'wall') {
@@ -317,13 +397,13 @@ export default function Canvas2D() {
           }
         }
 
-        // Map node results to zone concentration data
+        // Map node results to zone pressure data (steady-state has no concentration)
         for (const nodeRes of result.nodes) {
           const faceId = zoneIdToFaceId.get(nodeRes.id);
           if (faceId) {
             zoneConcs.push({
               faceId,
-              concentration: nodeRes.pressure, // use pressure for heatmap in steady-state
+              concentration: 0,
               pressure: nodeRes.pressure,
             });
           }
@@ -335,7 +415,7 @@ export default function Canvas2D() {
           drawPressureLabels(ctx, geo, edgeFlows, camera, cssW, cssH, colors);
         }
         if (zoneConcs.length > 0) {
-          drawConcentrationHeatmap(ctx, geo, zoneConcs, camera, cssW, cssH);
+          drawConcentrationHeatmap(ctx, geo, zoneConcs, camera, cssW, cssH, 'pressure');
         }
 
         // Wind pressure vectors on exterior walls
@@ -495,30 +575,27 @@ export default function Canvas2D() {
 
       case 'rect': {
         if (!rectStartRef.current) {
-          // First click: start rectangle
-          const sx = snapToGridEnabled ? snapToGrid(wx, gridSize) : wx;
-          const sy = snapToGridEnabled ? snapToGrid(wy, gridSize) : wy;
+          // First click: start rectangle (M-09: vertex snap > grid snap)
+          const sv = findNearestVertex(geo, wx, wy, snapThreshold);
+          const sx = sv ? sv.x : (snapToGridEnabled ? snapToGrid(wx, gridSize) : wx);
+          const sy = sv ? sv.y : (snapToGridEnabled ? snapToGrid(wy, gridSize) : wy);
           rectStartRef.current = { x: sx, y: sy };
           rectEndRef.current = { x: sx, y: sy };
         } else {
-          // Second click: confirm rectangle (4 walls)
+          // Second click: confirm rectangle (M-09: vertex snap > grid snap)
           const { x: x1, y: y1 } = rectStartRef.current;
-          const x2 = snapToGridEnabled ? snapToGrid(wx, gridSize) : wx;
-          const y2 = snapToGridEnabled ? snapToGrid(wy, gridSize) : wy;
+          const sv2 = findNearestVertex(geo, wx, wy, snapThreshold);
+          const x2 = sv2 ? sv2.x : (snapToGridEnabled ? snapToGrid(wx, gridSize) : wx);
+          const y2 = sv2 ? sv2.y : (snapToGridEnabled ? snapToGrid(wy, gridSize) : wy);
 
           const w = Math.abs(x2 - x1);
           const h = Math.abs(y2 - y1);
           if (w >= 0.3 && h >= 0.3) {
-            const minX = Math.min(x1, x2);
-            const minY = Math.min(y1, y2);
-            const maxX = Math.max(x1, x2);
-            const maxY = Math.max(y1, y2);
-            // Add 4 orthogonal walls
+            // Atomic rect: single undo step
             const store = useCanvasStore.getState();
-            store.addWall(minX, minY, maxX, minY); // top
-            store.addWall(maxX, minY, maxX, maxY); // right
-            store.addWall(maxX, maxY, minX, maxY); // bottom
-            store.addWall(minX, maxY, minX, minY); // left
+            store.addRect(x1, y1, x2, y2);
+          } else {
+            toast({ title: '矩形尺寸过小', description: '最小 0.3m × 0.3m' });
           }
           rectStartRef.current = null;
           rectEndRef.current = null;
@@ -528,11 +605,15 @@ export default function Canvas2D() {
 
       case 'door':
       case 'window': {
-        // Place on nearest edge
+        // H-10: Place using activePlacementType (supports all element types)
         const edgeId = hitTest(geo, story.placements, wx, wy, cameraRef.current);
         if (edgeId.type === 'edge' && edgeId.id) {
           const alpha = computeAlphaOnEdge(geo, edgeId.id, wx, wy);
-          useCanvasStore.getState().addPlacement(edgeId.id, alpha, state.toolMode);
+          if (alpha <= 0.05 || alpha >= 0.95) {
+            toast({ title: '位置已调整', description: '构件不能放置在墙体端点，已偏移至安全位置' });
+          }
+          const plType = useCanvasStore.getState().activePlacementType;
+          useCanvasStore.getState().addPlacement(edgeId.id, alpha, plType);
         }
         break;
       }
@@ -601,16 +682,23 @@ export default function Canvas2D() {
       rectEndRef.current = { x: rx, y: ry };
     }
 
-    // Hover detection (select mode)
-    if (state.toolMode === 'select') {
+    // Hover detection (select mode and door/window/erase modes)
+    if (['select', 'door', 'window', 'erase'].includes(state.toolMode)) {
       const hit = hitTest(geo, story.placements, wx, wy, cameraRef.current);
-      if (hit.type === 'edge') {
+      if (hit.type === 'placement') {
+        useCanvasStore.getState().setHoveredPlacement(hit.id);
+        useCanvasStore.getState().setHoveredEdge(null);
+        useCanvasStore.getState().setHoveredFace(null);
+      } else if (hit.type === 'edge') {
+        useCanvasStore.getState().setHoveredPlacement(null);
         useCanvasStore.getState().setHoveredEdge(hit.id);
         useCanvasStore.getState().setHoveredFace(null);
       } else if (hit.type === 'face') {
+        useCanvasStore.getState().setHoveredPlacement(null);
         useCanvasStore.getState().setHoveredEdge(null);
         useCanvasStore.getState().setHoveredFace(hit.id);
       } else {
+        useCanvasStore.getState().setHoveredPlacement(null);
         useCanvasStore.getState().setHoveredEdge(null);
         useCanvasStore.getState().setHoveredFace(null);
       }
@@ -641,13 +729,20 @@ export default function Canvas2D() {
       cameraRef.current, sx, sy, w, h,
       e.deltaY < 0 ? 1 : -1,
     );
+    // L-09: Sync camera zoom back to store for ZoomControls display
+    useCanvasStore.getState().setCameraZoom(cameraRef.current.zoom);
     dirtyRef.current = true;
   }, []);
 
   // ── Keyboard events ──
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      // Guard: don't intercept shortcuts when typing in inputs
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ||
+        (e.target as HTMLElement)?.isContentEditable;
+
+      if (e.code === 'Space' && !isInput) {
         spaceHeldRef.current = true;
         e.preventDefault();
       }
@@ -664,23 +759,13 @@ export default function Canvas2D() {
         state.clearSelection();
         dirtyRef.current = true;
       }
-      if (e.code === 'Delete' || e.code === 'Backspace') {
+      if ((e.code === 'Delete' || e.code === 'Backspace') && !isInput) {
         const state = useCanvasStore.getState();
         if (state.selectedPlacementId) {
           state.removePlacement(state.selectedPlacementId);
         } else if (state.selectedEdgeId) {
           state.removeEdge(state.selectedEdgeId);
         }
-      }
-      // Tool shortcuts
-      if (!e.ctrlKey && !e.metaKey) {
-        const store = useCanvasStore.getState();
-        if (e.code === 'Digit1' || e.code === 'KeyV') store.setToolMode('select');
-        if (e.code === 'Digit2' || e.code === 'KeyW') store.setToolMode('wall');
-        if (e.code === 'Digit3' || e.code === 'KeyR') store.setToolMode('rect');
-        if (e.code === 'Digit4' || e.code === 'KeyD') store.setToolMode('door');
-        if (e.code === 'Digit5') store.setToolMode('window');
-        if (e.code === 'Digit6' || e.code === 'KeyE') store.setToolMode('erase');
       }
       // Undo/Redo
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
@@ -689,6 +774,9 @@ export default function Canvas2D() {
           useCanvasStore.temporal.getState().redo();
         } else {
           useCanvasStore.temporal.getState().undo();
+          // L-01: Clear rect drawing state on undo to prevent desync
+          rectStartRef.current = null;
+          rectEndRef.current = null;
         }
         dirtyRef.current = true;
       }

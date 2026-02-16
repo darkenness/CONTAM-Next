@@ -1,18 +1,21 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { CloudSun, Upload, Trash2 } from 'lucide-react';
 import type { WeatherRecord } from '../../types';
 
 /** Parse a CONTAM-style .wth weather file into WeatherRecord[] */
-function parseWthFile(text: string): WeatherRecord[] {
+function parseWthFile(text: string): { records: WeatherRecord[]; skipped: number; totalLines: number } {
   const records: WeatherRecord[] = [];
+  let skipped = 0;
+  let totalLines = 0;
   for (const line of text.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('!') || trimmed.startsWith('#')) continue;
     if (!/^\d/.test(trimmed)) continue;
+    totalLines++;
 
     const parts = trimmed.split(/\s+/);
-    if (parts.length < 7) continue;
+    if (parts.length < 7) { skipped++; continue; }
 
     const month = parseInt(parts[0]);
     const day = parseInt(parts[1]);
@@ -23,7 +26,7 @@ function parseWthFile(text: string): WeatherRecord[] {
     const windDirection = parseFloat(parts[6]);
     const rhPercent = parts.length >= 8 ? parseFloat(parts[7]) : 50;
 
-    if (isNaN(month) || isNaN(tempC)) continue;
+    if (isNaN(month) || isNaN(tempC)) { skipped++; continue; }
 
     records.push({
       month, day, hour,
@@ -34,11 +37,12 @@ function parseWthFile(text: string): WeatherRecord[] {
       humidity: rhPercent / 100,
     });
   }
-  return records;
+  return { records, skipped, totalLines };
 }
 
 export default function WeatherPanel() {
   const { weatherConfig, setWeatherConfig } = useAppStore();
+  const [parseInfo, setParseInfo] = useState<string | null>(null);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,7 +51,14 @@ export default function WeatherPanel() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string;
-      const records = parseWthFile(text);
+      const { records, skipped, totalLines } = parseWthFile(text);
+      if (records.length === 0) {
+        setParseInfo(`解析失败：${totalLines} 行数据中无有效记录`);
+      } else if (skipped > 0) {
+        setParseInfo(`已跳过 ${skipped} 行格式错误（共 ${totalLines} 行，成功 ${records.length} 条）`);
+      } else {
+        setParseInfo(null);
+      }
       setWeatherConfig({
         enabled: true,
         filePath: file.name,
@@ -109,6 +120,13 @@ export default function WeatherPanel() {
       {weatherConfig.filePath && (
         <div className="px-2 py-1.5 bg-muted rounded text-[11px] text-muted-foreground">
           文件: {weatherConfig.filePath}
+        </div>
+      )}
+
+      {/* Parse warnings */}
+      {parseInfo && (
+        <div className="px-2 py-1.5 bg-amber-50 dark:bg-amber-950/30 rounded text-[11px] text-amber-700 dark:text-amber-300">
+          ⚠ {parseInfo}
         </div>
       )}
 

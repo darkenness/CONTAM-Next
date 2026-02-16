@@ -34,11 +34,14 @@ export function CanvasContextMenu() {
   const hoveredEdgeId = useCanvasStore(s => s.hoveredEdgeId);
   const hoveredFaceId = useCanvasStore(s => s.hoveredFaceId);
 
+  const hoveredPlacementId = useCanvasStore(s => s.hoveredPlacementId);
+
   const addPlacement = useCanvasStore(s => s.addPlacement);
   const removeEdge = useCanvasStore(s => s.removeEdge);
   const removePlacement = useCanvasStore(s => s.removePlacement);
   const selectEdge = useCanvasStore(s => s.selectEdge);
   const selectFace = useCanvasStore(s => s.selectFace);
+  const selectPlacement = useCanvasStore(s => s.selectPlacement);
 
   const close = useCallback(() => setMenu({ position: null, context: null, targetId: null }), []);
 
@@ -51,18 +54,19 @@ export function CanvasContextMenu() {
       e.preventDefault();
 
       // Determine context based on what's hovered/selected
+      // L-05: Check placement first (placements are on edges, so they take priority)
       let context: ContextMenuState['context'] = 'ground';
       let targetId: string | null = null;
 
-      if (hoveredEdgeId || selectedEdgeId) {
+      if (hoveredPlacementId || selectedPlacementId) {
+        context = 'placement';
+        targetId = hoveredPlacementId || selectedPlacementId;
+      } else if (hoveredEdgeId || selectedEdgeId) {
         context = 'edge';
         targetId = hoveredEdgeId || selectedEdgeId;
       } else if (hoveredFaceId || selectedFaceId) {
         context = 'face';
         targetId = hoveredFaceId || selectedFaceId;
-      } else if (selectedPlacementId) {
-        context = 'placement';
-        targetId = selectedPlacementId;
       }
 
       setMenu({ position: { x: e.clientX, y: e.clientY }, context, targetId });
@@ -76,7 +80,7 @@ export function CanvasContextMenu() {
       window.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('click', handleClick);
     };
-  }, [hoveredEdgeId, hoveredFaceId, selectedEdgeId, selectedFaceId, selectedPlacementId, close]);
+  }, [hoveredEdgeId, hoveredFaceId, hoveredPlacementId, selectedEdgeId, selectedFaceId, selectedPlacementId, close]);
 
   if (!menu.position) return null;
 
@@ -136,7 +140,7 @@ export function CanvasContextMenu() {
         <>
           <button
             className="w-full px-3 py-1.5 text-left hover:bg-accent text-foreground"
-            onClick={() => close()}
+            onClick={() => { selectPlacement(menu.targetId); close(); }}
           >
             编辑组件属性
           </button>

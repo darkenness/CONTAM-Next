@@ -147,7 +147,7 @@ export function drawZones(
 
     // Fill
     ctx.fillStyle = zone.color;
-    ctx.globalAlpha = face.id === selectedFaceId ? 0.4 : face.id === hoveredFaceId ? 0.3 : 0.2;
+    ctx.globalAlpha = face.id === selectedFaceId ? 0.4 : face.id === hoveredFaceId ? 0.45 : 0.2;
     ctx.fill();
 
     // Label
@@ -310,16 +310,23 @@ export function drawPlacements(
       drawDoorIcon(ctx, sx, sy, size, nx, ny, camera, isSelected, !pl.isConfigured, colors);
     } else if (pl.type === 'window') {
       drawWindowIcon(ctx, sx, sy, size, edx / (elen || 1), edy / (elen || 1), camera, isSelected, !pl.isConfigured, colors);
+    } else if (pl.type === 'fan') {
+      drawFanIcon(ctx, sx, sy, size, isSelected, !pl.isConfigured, colors);
+    } else if (pl.type === 'opening') {
+      drawOpeningIcon(ctx, sx, sy, size, edx / (elen || 1), edy / (elen || 1), camera, isSelected, !pl.isConfigured, colors);
     } else {
-      // Generic placement icon (small square + type letter)
-      ctx.fillStyle = isSelected ? colors.primary : (!pl.isConfigured ? '#f59e0b' : colors.accent);
-      ctx.fillRect(sx - size / 2, sy - size / 2, size, size);
+      // Typed placement icon (colored shape + type letter)
+      const typeColor = PLACEMENT_TYPE_COLORS[pl.type] ?? colors.accent;
+      ctx.fillStyle = isSelected ? colors.primary : (!pl.isConfigured ? '#f59e0b' : typeColor);
+      drawRoundedRect(ctx, sx - size / 2, sy - size / 2, size, size, size * 0.2);
+      ctx.fill();
       if (camera.zoom > 20) {
-        ctx.fillStyle = colors.background;
+        ctx.fillStyle = '#fff';
         ctx.font = `bold ${Math.max(8, size * 0.7)}px 'JetBrains Mono', monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(pl.type[0].toUpperCase(), sx, sy);
+        const label = PLACEMENT_TYPE_LABELS[pl.type] ?? pl.type[0].toUpperCase();
+        ctx.fillText(label, sx, sy);
       }
     }
   }
@@ -372,6 +379,86 @@ function drawWindowIcon(
   }
 }
 
+// M-11: Per-type colors and labels for distinct canvas icons
+const PLACEMENT_TYPE_COLORS: Record<string, string> = {
+  duct: '#3b82f6',       // blue
+  damper: '#8b5cf6',     // violet
+  filter: '#10b981',     // emerald
+  crack: '#78716c',      // stone
+  srv: '#06b6d4',        // cyan
+  checkValve: '#f97316', // orange
+};
+
+const PLACEMENT_TYPE_LABELS: Record<string, string> = {
+  duct: 'D',
+  damper: 'V',
+  filter: 'F',
+  crack: 'C',
+  srv: 'S',
+  checkValve: '⊳',
+};
+
+function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawFanIcon(
+  ctx: CanvasRenderingContext2D,
+  sx: number, sy: number, size: number,
+  isSelected: boolean, unconfigured: boolean,
+  colors: ThemeColors,
+): void {
+  const r = size * 0.7;
+  ctx.strokeStyle = unconfigured ? '#f59e0b' : (isSelected ? colors.primary : '#ef4444');
+  ctx.lineWidth = Math.max(1.5, size * 0.12);
+
+  // Circle
+  ctx.beginPath();
+  ctx.arc(sx, sy, r, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Fan blades (3 lines from center)
+  for (let i = 0; i < 3; i++) {
+    const angle = (i * Math.PI * 2) / 3 - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx + Math.cos(angle) * r * 0.8, sy + Math.sin(angle) * r * 0.8);
+    ctx.stroke();
+  }
+}
+
+function drawOpeningIcon(
+  ctx: CanvasRenderingContext2D,
+  sx: number, sy: number, size: number,
+  dx: number, dy: number,
+  camera: Camera2D,
+  isSelected: boolean, unconfigured: boolean,
+  colors: ThemeColors,
+): void {
+  ctx.strokeStyle = unconfigured ? '#f59e0b' : (isSelected ? colors.primary : '#22c55e');
+  ctx.lineWidth = Math.max(1.5, camera.zoom * 0.03);
+
+  const halfLen = size * 0.6;
+
+  // Dashed gap in wall (opening symbol)
+  ctx.setLineDash([size * 0.2, size * 0.15]);
+  ctx.beginPath();
+  ctx.moveTo(sx - dx * halfLen, sy - dy * halfLen);
+  ctx.lineTo(sx + dx * halfLen, sy + dy * halfLen);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
 // ── Wall preview (dashed line for wall being drawn) ──
 
 export function drawWallPreview(
@@ -405,7 +492,7 @@ export function drawWallPreview(
   const dx = endX - startX;
   const dy = endY - startY;
   const len = Math.sqrt(dx * dx + dy * dy);
-  if (len > 0.1 && camera.zoom > 10) {
+  if (len > 0.1 && camera.zoom > 3) {
     const midSx = (sx1 + sx2) / 2;
     const midSy = (sy1 + sy2) / 2;
     const fontSize = Math.max(10, Math.min(13, camera.zoom * 0.2));
@@ -449,7 +536,7 @@ export function drawRectPreview(
   // Dimension labels
   const w = Math.abs(x2 - x1);
   const h = Math.abs(y2 - y1);
-  if (w > 0.1 && h > 0.1 && camera.zoom > 10) {
+  if (w > 0.1 && h > 0.1 && camera.zoom > 3) {
     const fontSize = Math.max(10, Math.min(13, camera.zoom * 0.2));
     ctx.font = `${fontSize}px 'JetBrains Mono', monospace`;
     ctx.fillStyle = colors.primary;
@@ -672,12 +759,17 @@ export function drawConcentrationHeatmap(
   zoneResults: ZoneConcentrationResult[],
   camera: Camera2D,
   canvasW: number, canvasH: number,
+  mode: 'concentration' | 'pressure' = 'concentration',
 ): void {
   if (zoneResults.length === 0) return;
   const cx = canvasW / 2;
   const cy = canvasH / 2;
 
-  const maxConc = Math.max(1e-10, ...zoneResults.map(z => z.concentration));
+  // Use the appropriate value based on mode
+  const getValue = (zr: ZoneConcentrationResult) =>
+    mode === 'pressure' ? Math.abs(zr.pressure) : zr.concentration;
+
+  const maxVal = Math.max(1e-10, ...zoneResults.map(getValue));
 
   for (const zr of zoneResults) {
     const face = geo.faces.find(f => f.id === zr.faceId);
@@ -693,15 +785,16 @@ export function drawConcentrationHeatmap(
     }
     ctx.closePath();
 
+    const val = getValue(zr);
     // Heat color: green(low) → yellow(mid) → red(high)
-    const ratio = Math.min(1, zr.concentration / maxConc);
+    const ratio = Math.min(1, val / maxVal);
     const r = Math.round(ratio < 0.5 ? ratio * 2 * 255 : 255);
     const g = Math.round(ratio < 0.5 ? 255 : (1 - (ratio - 0.5) * 2) * 255);
     ctx.fillStyle = `rgb(${r}, ${g}, 0)`;
     ctx.globalAlpha = 0.35;
     ctx.fill();
 
-    // Concentration label
+    // Value label
     if (camera.zoom > 20) {
       const centroid = getCentroid(verts);
       const csx = centroid.x * camera.zoom + camera.panX + cx;
@@ -712,7 +805,10 @@ export function drawConcentrationHeatmap(
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.globalAlpha = 0.8;
-      ctx.fillText(`${(zr.concentration * 1e6).toFixed(0)} ppm`, csx, csy + fontSize + 2);
+      const label = mode === 'pressure'
+        ? `${zr.pressure.toFixed(2)} Pa`
+        : `${(zr.concentration * 1e6).toFixed(0)} ppm`;
+      ctx.fillText(label, csx, csy + fontSize + 2);
     }
     ctx.globalAlpha = 1.0;
   }
@@ -956,6 +1052,158 @@ export function drawCalibrationOverlay(
     ctx.fillText(`${gridDist.toFixed(2)} grid units`, midX, midY - 6);
     ctx.globalAlpha = 1.0;
   }
+}
+
+// ── H-02: Placement preview (ghost icon on hovered edge) ──
+
+export function drawPlacementPreview(
+  ctx: CanvasRenderingContext2D,
+  geo: Geometry,
+  edgeId: string,
+  alpha: number,
+  placementType: 'door' | 'window' | string,
+  camera: Camera2D,
+  canvasW: number, canvasH: number,
+  colors: ThemeColors,
+): void {
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+  const { vertexMap, edgeMap } = buildGeoMaps(geo);
+  const edge = edgeMap.get(edgeId);
+  if (!edge) return;
+  const v1 = vertexMap.get(edge.vertexIds[0]);
+  const v2 = vertexMap.get(edge.vertexIds[1]);
+  if (!v1 || !v2) return;
+
+  const wx = v1.x + (v2.x - v1.x) * alpha;
+  const wy = v1.y + (v2.y - v1.y) * alpha;
+  const sx = wx * camera.zoom + camera.panX + cx;
+  const sy = wy * camera.zoom + camera.panY + cy;
+  const size = Math.max(6, camera.zoom * 0.18);
+
+  const edx = v2.x - v1.x;
+  const edy = v2.y - v1.y;
+  const elen = Math.sqrt(edx * edx + edy * edy);
+  const nx = elen > 0 ? -edy / elen : 0;
+  const ny = elen > 0 ? edx / elen : 0;
+
+  ctx.globalAlpha = 0.5;
+  if (placementType === 'door') {
+    drawDoorIcon(ctx, sx, sy, size, nx, ny, camera, false, false, colors);
+  } else if (placementType === 'window') {
+    drawWindowIcon(ctx, sx, sy, size, edx / (elen || 1), edy / (elen || 1), camera, false, false, colors);
+  } else if (placementType === 'fan') {
+    drawFanIcon(ctx, sx, sy, size, false, false, colors);
+  } else if (placementType === 'opening') {
+    drawOpeningIcon(ctx, sx, sy, size, edx / (elen || 1), edy / (elen || 1), camera, false, false, colors);
+  } else {
+    const typeColor = PLACEMENT_TYPE_COLORS[placementType] ?? colors.accent;
+    ctx.fillStyle = typeColor;
+    drawRoundedRect(ctx, sx - size / 2, sy - size / 2, size, size, size * 0.2);
+    ctx.fill();
+    if (camera.zoom > 20) {
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${Math.max(8, size * 0.7)}px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const label = PLACEMENT_TYPE_LABELS[placementType] ?? placementType[0].toUpperCase();
+      ctx.fillText(label, sx, sy);
+    }
+  }
+  ctx.globalAlpha = 1.0;
+}
+
+// ── H-04: Erase hover highlight (red overlay on target) ──
+
+export function drawEraseHighlight(
+  ctx: CanvasRenderingContext2D,
+  geo: Geometry,
+  placements: EdgePlacement[],
+  targetType: 'placement' | 'edge',
+  targetId: string,
+  camera: Camera2D,
+  canvasW: number, canvasH: number,
+): void {
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+  const { vertexMap, edgeMap } = buildGeoMaps(geo);
+
+  if (targetType === 'edge') {
+    const edge = edgeMap.get(targetId);
+    if (!edge) return;
+    const v1 = vertexMap.get(edge.vertexIds[0]);
+    const v2 = vertexMap.get(edge.vertexIds[1]);
+    if (!v1 || !v2) return;
+    const sx1 = v1.x * camera.zoom + camera.panX + cx;
+    const sy1 = v1.y * camera.zoom + camera.panY + cy;
+    const sx2 = v2.x * camera.zoom + camera.panX + cx;
+    const sy2 = v2.y * camera.zoom + camera.panY + cy;
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = Math.max(4, WALL_THICKNESS_M * camera.zoom + 4);
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+  } else if (targetType === 'placement') {
+    const pl = placements.find(p => p.id === targetId);
+    if (!pl) return;
+    const edge = edgeMap.get(pl.edgeId);
+    if (!edge) return;
+    const v1 = vertexMap.get(edge.vertexIds[0]);
+    const v2 = vertexMap.get(edge.vertexIds[1]);
+    if (!v1 || !v2) return;
+    const wx = v1.x + (v2.x - v1.x) * pl.alpha;
+    const wy = v1.y + (v2.y - v1.y) * pl.alpha;
+    const sx = wx * camera.zoom + camera.panX + cx;
+    const sy = wy * camera.zoom + camera.panY + cy;
+    const r = Math.max(8, camera.zoom * 0.22);
+    ctx.fillStyle = '#ef4444';
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+  }
+}
+
+// ── M-06: Ghost rendering of adjacent floor geometry ──
+
+export function drawGhostFloor(
+  ctx: CanvasRenderingContext2D,
+  geo: Geometry,
+  camera: Camera2D,
+  canvasW: number, canvasH: number,
+): void {
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+  const { vertexMap } = buildGeoMaps(geo);
+
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.strokeStyle = '#888';
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = Math.max(1, WALL_THICKNESS_M * camera.zoom * 0.5);
+
+  for (const edge of geo.edges) {
+    const v1 = vertexMap.get(edge.vertexIds[0]);
+    const v2 = vertexMap.get(edge.vertexIds[1]);
+    if (!v1 || !v2) continue;
+
+    const sx1 = v1.x * camera.zoom + camera.panX + cx;
+    const sy1 = v1.y * camera.zoom + camera.panY + cy;
+    const sx2 = v2.x * camera.zoom + camera.panX + cx;
+    const sy2 = v2.y * camera.zoom + camera.panY + cy;
+
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 // ── Helpers ──

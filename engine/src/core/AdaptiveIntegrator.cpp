@@ -5,7 +5,8 @@
 namespace contam {
 
 AdaptiveIntegrator::AdaptiveIntegrator(int numStates, const Config& config)
-    : numStates_(numStates), config_(config), suggestedDt_(config.dtMin * 10.0)
+    : numStates_(numStates), config_(config),
+      suggestedDt_(std::min(config.dtMax, std::max(config.dtMin, (config.dtMax - config.dtMin) * 0.01)))
 {
     if (numStates <= 0) {
         throw std::invalid_argument("AdaptiveIntegrator: numStates must be positive");
@@ -178,63 +179,35 @@ double AdaptiveIntegrator::step(double t, double dtTarget, std::vector<double>& 
         if (dt < config_.dtMin * 0.5) break;
         if (++internalSteps > maxInternalSteps) break;
 
-        int order;
-        std::vector<double> ySolution;
+        // Richardson extrapolation with BDF-1:
+        // One full step vs two half-steps. The two half-step result is O(h^2)
+        // accurate while the full step is O(h). Their difference estimates error.
+        std::vector<double> yFull;
+        stepBDF1(tCurrent, dt, y, yFull, rhs);
 
-        if (hasPrevious_ && config_.maxOrder >= 2) {
-            // BDF-2 for the solution
-            order = 2;
-            stepBDF2(tCurrent, dt, dtPrev_, y, yPrev_, ySolution, rhs);
+        double halfDt = dt * 0.5;
+        std::vector<double> yHalf, yDouble;
+        stepBDF1(tCurrent, halfDt, y, yHalf, rhs);
+        stepBDF1(tCurrent + halfDt, halfDt, yHalf, yDouble, rhs);
 
-            // Error estimate: step-doubling (two half-steps of BDF-1 vs one full BDF-1)
-            std::vector<double> yFull;
-            stepBDF1(tCurrent, dt, y, yFull, rhs);
+        double error = estimateError(y, yFull, yDouble);
 
-            double halfDt = dt * 0.5;
-            std::vector<double> yHalf, yDouble;
-            stepBDF1(tCurrent, halfDt, y, yHalf, rhs);
-            stepBDF1(tCurrent + halfDt, halfDt, yHalf, yDouble, rhs);
-
-            double error = estimateError(y, yFull, yDouble);
-
-            if (error > 1.0 && dt > config_.dtMin * 1.01) {
-                // Reject step, but only if we can still shrink
-                rejectedSteps_++;
-                dt = computeNewDt(dt, error, order);
-                dt = std::max(dt, config_.dtMin);
-                continue;
-            }
-
-            // Accept BDF-2 solution (highest order available)
-            suggestedDt_ = computeNewDt(dt, error, order);
-        } else {
-            // BDF-1 only
-            order = 1;
-            stepBDF1(tCurrent, dt, y, ySolution, rhs);
-
-            // Error estimate: compare with two half-steps
-            double halfDt = dt * 0.5;
-            std::vector<double> yHalf, yDouble;
-            stepBDF1(tCurrent, halfDt, y, yHalf, rhs);
-            stepBDF1(tCurrent + halfDt, halfDt, yHalf, yDouble, rhs);
-
-            double error = estimateError(y, ySolution, yDouble);
-
-            if (error > 1.0 && dt > config_.dtMin * 1.01) {
-                // Reject step, but only if we can still shrink
-                rejectedSteps_++;
-                dt = computeNewDt(dt, error, order);
-                dt = std::max(dt, config_.dtMin);
-                continue;
-            }
-
-            // Use the more accurate two-half-step result
-            ySolution = yDouble;
-
-            suggestedDt_ = computeNewDt(dt, error, order);
+        if (error > 1.0 && dt > config_.dtMin * 1.01) {
+            rejectedSteps_++;
+            dt = computeNewDt(dt, error, 1);
+            dt = std::max(dt, config_.dtMin);
+            continue;
         }
 
-        // Accept step: update history
+        suggestedDt_ = computeNewDt(dt, error, 1);
+
+        // Accept: use the more accurate two-half-step result
+        // Richardson extrapolation: y_accurate = 2*yDouble - yFull
+        std::vector<double> ySolution(numStates_);
+        for (int i = 0; i < numStates_; ++i) {
+            ySolution[i] = 2.0 * yDouble[i] - yFull[i];
+        }
+
         yPrev_ = y;
         dtPrev_ = dt;
         hasPrevious_ = true;

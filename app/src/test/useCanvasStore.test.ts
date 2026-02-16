@@ -86,15 +86,15 @@ describe('useCanvasStore', () => {
       expect(wp.endX).toBe(0);
     });
 
-    it('confirmWall adds wall to geometry and chains next wall', () => {
+    it('confirmWall adds wall to geometry and resets preview', () => {
       s().startWallPreview(0, 0);
       s().updateWallPreview(5, 0);
       s().confirmWall();
 
       const wp = s().wallPreview;
-      // Chain wall: preview stays active, starting from the end of the confirmed wall
-      expect(wp.active).toBe(true);
-      expect(wp.startX).toBe(5);
+      // BUG-2: no chaining — preview resets after confirm
+      expect(wp.active).toBe(false);
+      expect(wp.startX).toBe(0);
       expect(wp.startY).toBe(0);
 
       const geo = s().getActiveGeometry();

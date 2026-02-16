@@ -65,15 +65,15 @@ describe('interaction.ts', () => {
       expect(result.snappedVertexId).not.toBeNull();
     });
 
-    it('snaps to nearby vertex even if not orthogonal (M-08: vertex wins)', () => {
+    it('does not snap to off-axis vertex (orthogonal constraint wins)', () => {
       const geo = createEmptyGeometry();
       // Create a vertex at (5, 3) — different X and Y from start
       addWall(geo, 5, 3, 8, 3);
       const result = constrainOrthogonal(0, 0, 4.9, 2.8, 0.1, geo, 0.5);
-      // M-08: vertex snapping always wins over orthogonal constraint
-      expect(result.x).toBe(5);
-      expect(result.y).toBe(3);
-      expect(result.snappedVertexId).not.toBeNull();
+      // Vertex (5,3) is off both axes from (0,0), so orthogonal constraint wins
+      // dx=4.9 > dy=2.8 → horizontal → y stays 0
+      expect(result.y).toBe(0);
+      expect(result.snappedVertexId).toBeNull();
     });
   });
 

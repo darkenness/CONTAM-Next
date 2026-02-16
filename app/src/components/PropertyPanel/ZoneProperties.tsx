@@ -40,7 +40,7 @@ export function ZoneProperties() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <Box size={16} className="text-primary" />
-        <span className="text-sm font-bold text-foreground">区域 / 房间</span>
+        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">区域 / 房间</span>
       </div>
 
       <InputField
@@ -65,7 +65,7 @@ export function ZoneProperties() {
         onChange={(v) => updateZone(selectedFaceId, { volume: parseFloat(v) || 0 })}
       />
 
-      <div className="mt-1 px-2 py-1.5 bg-muted rounded text-[11px] text-muted-foreground space-y-0.5">
+      <div className="mt-1 px-2.5 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[11px] text-slate-400 dark:text-slate-500 space-y-0.5">
         <div>面积: {area.toFixed(2)} m²</div>
         <div>顶点数: {vertices.length}</div>
         <div>Zone ID: {zone.zoneId}</div>
@@ -108,7 +108,7 @@ export function EdgeProperties() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <div className="w-4 h-4 bg-muted-foreground rounded-sm" />
-        <span className="text-sm font-bold text-foreground">墙壁</span>
+        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">墙壁</span>
         <button
           onClick={() => removeEdge(selectedEdgeId)}
           className="ml-auto p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
@@ -117,48 +117,54 @@ export function EdgeProperties() {
         </button>
       </div>
 
-      <div className="px-2 py-2 bg-muted rounded text-[11px] text-muted-foreground space-y-1.5">
+      <div className="px-2.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[11px] text-slate-400 dark:text-slate-500 space-y-2.5">
         <div>长度: {length.toFixed(2)} m</div>
-        <label className="flex items-center gap-2">
-          <span className="w-10">高度:</span>
-          <input
-            type="number"
-            step="0.1"
-            min="0.1"
-            value={edge.wallHeight}
-            onChange={(e) => updateEdge(selectedEdgeId, { wallHeight: parseFloat(e.target.value) || 3.0 })}
-            className="flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
-          />
-          <span>m</span>
-        </label>
-        <label className="flex items-center gap-2">
-          <span className="w-10">厚度:</span>
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={edge.wallThickness}
-            onChange={(e) => updateEdge(selectedEdgeId, { wallThickness: parseFloat(e.target.value) || 0.2 })}
-            className="flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
-          />
-          <span>m</span>
-        </label>
-        <label className="flex items-center gap-2">
-          <span className="w-10">类型:</span>
-          <select
-            value={edge.isExterior ? 'exterior' : 'interior'}
-            onChange={(e) => updateEdge(selectedEdgeId, { isExterior: e.target.value === 'exterior' })}
-            className="flex-1 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
-          >
-            <option value="exterior">外墙（面向室外）</option>
-            <option value="interior">内墙（共用墙）</option>
-          </select>
-        </label>
+        <div className="grid grid-cols-3 gap-x-3 items-center">
+          <span className="text-right">高度</span>
+          <div className="col-span-2 flex items-center gap-1.5">
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              value={edge.wallHeight}
+              onChange={(e) => updateEdge(selectedEdgeId, { wallHeight: parseFloat(e.target.value) || 3.0 })}
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+            <span className="shrink-0">m</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-x-3 items-center">
+          <span className="text-right">厚度</span>
+          <div className="col-span-2 flex items-center gap-1.5">
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={edge.wallThickness}
+              onChange={(e) => updateEdge(selectedEdgeId, { wallThickness: parseFloat(e.target.value) || 0.2 })}
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+            <span className="shrink-0">m</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-x-3 items-center">
+          <span className="text-right">类型</span>
+          <div className="col-span-2">
+            <select
+              value={edge.isExterior ? 'exterior' : 'interior'}
+              onChange={(e) => updateEdge(selectedEdgeId, { isExterior: e.target.value === 'exterior' })}
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            >
+              <option value="exterior">外墙（面向室外）</option>
+              <option value="interior">内墙（共用墙）</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Connected zones info */}
-      <div className="border-t border-border pt-2">
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+      <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2">
+        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
           相邻区域
         </span>
         {facesCount === 0 ? (
@@ -180,18 +186,18 @@ export function EdgeProperties() {
 
       {/* Placements on this edge */}
       {story.placements.filter(p => p.edgeId === selectedEdgeId).length > 0 && (
-        <div className="border-t border-border pt-2">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2">
+          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
             此墙上的组件（点击编辑参数）
           </span>
-          <div className="mt-1 space-y-1">
+          <div className="mt-1.5 space-y-1">
             {story.placements
               .filter(p => p.edgeId === selectedEdgeId)
               .map(p => (
                 <button
                   key={p.id}
                   onClick={() => selectPlacement(p.id)}
-                  className="w-full flex items-center gap-2 text-xs px-2 py-1.5 bg-muted rounded hover:bg-accent transition-colors text-left"
+                  className="w-full flex items-center gap-2 text-xs px-2.5 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                 >
                   <span className={`w-2 h-2 rounded-full shrink-0 ${p.isConfigured ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
                   <span className="text-foreground">{PLACEMENT_LABELS[p.type] || p.type}</span>
@@ -233,7 +239,7 @@ export function PlacementProperties() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <span className={`w-3 h-3 rounded-full shrink-0 ${placement.isConfigured ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
-        <span className="text-sm font-bold text-foreground">
+        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
           {PLACEMENT_LABELS[placement.type] || placement.type}
         </span>
         <button
@@ -245,7 +251,7 @@ export function PlacementProperties() {
       </div>
 
       {/* Connectivity info */}
-      <div className="px-2 py-2 bg-muted rounded text-[11px] text-muted-foreground space-y-0.5">
+      <div className="px-2.5 py-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[11px] text-slate-400 dark:text-slate-500 space-y-0.5">
         {isSharedWall && (
           <div>连通: <span className="text-foreground font-medium">{connectedZones[0]}</span> ⟷ <span className="text-foreground font-medium">{connectedZones[1]}</span></div>
         )}
@@ -275,41 +281,42 @@ export function PlacementProperties() {
       <ScheduleBinding placementId={selectedPlacementId} scheduleId={placement.scheduleId} />
 
       {/* Placement-specific parameters */}
-      <div className="border-t border-border pt-2">
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+      <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2">
+        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
           气流元件参数
         </span>
       </div>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">元件类型</span>
-        <select
-          value={placement.type}
-          onChange={(e) => {
-            const newType = e.target.value as EdgePlacement['type'];
-            // Reset type-specific fields when switching type
-            updatePlacement(selectedPlacementId, {
-              type: newType,
-              isConfigured: false,
-              flowCoefficient: undefined,
-              flowExponent: undefined,
-              dischargeCd: undefined,
-              openingArea: undefined,
-              openingHeight: undefined,
-              maxFlow: undefined,
-              shutoffPressure: undefined,
-              damperFraction: undefined,
-              filterEfficiency: undefined,
-              ductDiameter: undefined,
-              ductRoughness: undefined,
-              ductSumK: undefined,
-              targetFlow: undefined,
-              pMin: undefined,
-              pMax: undefined,
-            });
-          }}
-          className="px-2 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-ring bg-background"
-        >
+      <div className="grid grid-cols-3 gap-x-3 items-center">
+        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">元件类型</span>
+        <div className="col-span-2">
+          <select
+            value={placement.type}
+            onChange={(e) => {
+              const newType = e.target.value as EdgePlacement['type'];
+              // Reset type-specific fields when switching type
+              updatePlacement(selectedPlacementId, {
+                type: newType,
+                isConfigured: false,
+                flowCoefficient: undefined,
+                flowExponent: undefined,
+                dischargeCd: undefined,
+                openingArea: undefined,
+                openingHeight: undefined,
+                maxFlow: undefined,
+                shutoffPressure: undefined,
+                damperFraction: undefined,
+                filterEfficiency: undefined,
+                ductDiameter: undefined,
+                ductRoughness: undefined,
+                ductSumK: undefined,
+                targetFlow: undefined,
+                pMin: undefined,
+                pMax: undefined,
+              });
+            }}
+            className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-slate-800 transition-colors"
+          >
           <option value="door">门</option>
           <option value="window">窗</option>
           <option value="opening">开口</option>
@@ -320,8 +327,9 @@ export function PlacementProperties() {
           <option value="filter">过滤器</option>
           <option value="srv">自调节通风口</option>
           <option value="checkValve">单向阀</option>
-        </select>
-      </label>
+          </select>
+        </div>
+      </div>
 
       <InputField
         label="相对标高"
@@ -603,7 +611,7 @@ export function PlacementProperties() {
         </>
       )}
 
-      <div className="mt-1 px-2 py-1.5 bg-muted rounded text-[10px] text-muted-foreground">
+      <div className="mt-1 px-2.5 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[10px] text-slate-400 dark:text-slate-500">
         ID: {placement.id} &nbsp;|&nbsp; 状态: {placement.isConfigured
           ? <span className="inline-flex items-center gap-0.5 text-emerald-600"><CheckCircle2 size={12} /> 已配置</span>
           : <span className="inline-flex items-center gap-0.5 text-destructive"><AlertCircle size={12} /> 未配置</span>
@@ -625,19 +633,21 @@ function ScheduleBinding({ placementId, scheduleId }: { placementId: string; sch
   ];
 
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">运行时间表</span>
-      <select
-        value={scheduleId ?? ''}
-        onChange={(e) => updatePlacement(placementId, { scheduleId: e.target.value || undefined })}
-        className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground"
-      >
-        <option value="">无（始终运行）</option>
-        {allSchedules.map(s => (
-          <option key={s.id} value={s.id}>[{s.type}] {s.name}</option>
-        ))}
-      </select>
-    </label>
+    <div className="grid grid-cols-3 gap-x-3 items-center">
+      <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">运行时间表</span>
+      <div className="col-span-2">
+        <select
+          value={scheduleId ?? ''}
+          onChange={(e) => updatePlacement(placementId, { scheduleId: e.target.value || undefined })}
+          className="w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+        >
+          <option value="">无（始终运行）</option>
+          {allSchedules.map(s => (
+            <option key={s.id} value={s.id}>[{s.type}] {s.name}</option>
+          ))}
+        </select>
+      </div>
+    </div>
   );
 }
 
@@ -650,7 +660,7 @@ export function StoryProperties() {
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-sm font-bold text-foreground">楼层设置</span>
+      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">楼层设置</span>
       <InputField
         label="楼层名称"
         value={story.name}
@@ -664,7 +674,7 @@ export function StoryProperties() {
         step="0.1"
         onChange={(v) => updateStoryHeight(story.id, parseFloat(v) || 3.0)}
       />
-      <div className="px-2 py-1.5 bg-muted rounded text-[11px] text-muted-foreground space-y-0.5">
+      <div className="px-2.5 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[11px] text-slate-400 dark:text-slate-500 space-y-0.5">
         <div>墙壁数: {story.geometry.edges.length}</div>
         <div>区域数: {story.geometry.faces.length}</div>
         <div>组件数: {story.placements.length}</div>

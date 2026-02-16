@@ -28,7 +28,7 @@ function NodeProperties() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         {isAmbient ? <Cloud size={16} className="text-primary" /> : <Box size={16} className="text-primary" />}
-        <span className="text-sm font-bold text-foreground">{isAmbient ? '室外环境节点' : '房间 / 区域'}</span>
+        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{isAmbient ? '室外环境节点' : '房间 / 区域'}</span>
         <button
           onClick={() => removeNode(node.id)}
           className="ml-auto p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
@@ -69,7 +69,7 @@ function NodeProperties() {
         </>
       )}
 
-      <div className="mt-1 px-2 py-1.5 bg-muted rounded text-[11px] text-muted-foreground">
+      <div className="mt-1 px-2.5 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[11px] text-slate-400 dark:text-slate-500">
         ID: {node.id} &nbsp;|&nbsp; 类型: {node.type} &nbsp;|&nbsp; 位置: ({node.x}, {node.y})
       </div>
     </div>
@@ -88,7 +88,7 @@ function LinkProperties() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <Link2 size={16} className="text-primary" />
-        <span className="text-sm font-bold text-foreground">气流路径</span>
+        <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">气流路径</span>
         <button
           onClick={() => removeLink(link.id)}
           className="ml-auto p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
@@ -97,7 +97,7 @@ function LinkProperties() {
         </button>
       </div>
 
-      <div className="text-xs text-muted-foreground bg-muted rounded px-2 py-1.5">
+      <div className="text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-lg px-2.5 py-2">
         {fromNode?.name ?? `#${link.from}`} → {toNode?.name ?? `#${link.to}`}
       </div>
 
@@ -106,33 +106,35 @@ function LinkProperties() {
         onChange={(v) => updateLink(link.id, { elevation: parseFloat(v) || 0 })}
       />
 
-      <div className="border-t border-border pt-2 mt-1">
-        <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">气流元件</span>
+      <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 mt-1">
+        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider">气流元件</span>
       </div>
 
       <div className="flex flex-col gap-2">
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">类型</span>
-          <select
-            value={link.element.type}
-            onChange={(e) => {
-              const newType = e.target.value as FlowElementType;
-              const defaults: Record<string, FlowElementDef> = {
-                PowerLawOrifice: { type: 'PowerLawOrifice', C: 0.001, n: 0.65 },
-                TwoWayFlow: { type: 'TwoWayFlow', Cd: 0.65, area: 0.5 },
-                Fan: { type: 'Fan', maxFlow: 0.05, shutoffPressure: 200 },
-                Duct: { type: 'Duct', length: 5.0, diameter: 0.2, roughness: 0.0001, sumK: 0 },
-                Damper: { type: 'Damper', Cmax: 0.005, n: 0.65, fraction: 1.0 },
-                Filter: { type: 'Filter', C: 0.002, n: 0.65, efficiency: 0.9 },
-                SelfRegulatingVent: { type: 'SelfRegulatingVent', targetFlow: 0.01, pMin: 2.0, pMax: 50.0 },
-                CheckValve: { type: 'CheckValve', C: 0.001, n: 0.65 },
-                SupplyDiffuser: { type: 'SupplyDiffuser', C: 0.003, n: 0.5 },
-                ReturnGrille: { type: 'ReturnGrille', C: 0.003, n: 0.5 },
-              };
-              updateLink(link.id, { element: defaults[newType] ?? { type: newType } });
-            }}
-            className="px-2 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-ring bg-background"
-          >
+          <div className="grid grid-cols-3 gap-x-3 items-center">
+            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider text-right">类型</span>
+            <div className="col-span-2">
+              <select
+                value={link.element.type}
+                onChange={(e) => {
+                  const newType = e.target.value as FlowElementType;
+                  const defaults: Record<string, FlowElementDef> = {
+                    PowerLawOrifice: { type: 'PowerLawOrifice', C: 0.001, n: 0.65 },
+                    TwoWayFlow: { type: 'TwoWayFlow', Cd: 0.65, area: 0.5 },
+                    Fan: { type: 'Fan', maxFlow: 0.05, shutoffPressure: 200 },
+                    Duct: { type: 'Duct', length: 5.0, diameter: 0.2, roughness: 0.0001, sumK: 0 },
+                    Damper: { type: 'Damper', Cmax: 0.005, n: 0.65, fraction: 1.0 },
+                    Filter: { type: 'Filter', C: 0.002, n: 0.65, efficiency: 0.9 },
+                    SelfRegulatingVent: { type: 'SelfRegulatingVent', targetFlow: 0.01, pMin: 2.0, pMax: 50.0 },
+                    CheckValve: { type: 'CheckValve', C: 0.001, n: 0.65 },
+                    SupplyDiffuser: { type: 'SupplyDiffuser', C: 0.003, n: 0.5 },
+                    ReturnGrille: { type: 'ReturnGrille', C: 0.003, n: 0.5 },
+                  };
+                  updateLink(link.id, { element: defaults[newType] ?? { type: newType } });
+                }}
+                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-slate-800 transition-colors"
+              >
             <option value="PowerLawOrifice">幂律孔口模型</option>
             <option value="TwoWayFlow">大开口 (双向流)</option>
             <option value="Fan">风扇 / 风机</option>
@@ -143,7 +145,9 @@ function LinkProperties() {
             <option value="CheckValve">单向阀</option>
             <option value="SupplyDiffuser">送风口</option>
             <option value="ReturnGrille">回风口</option>
-          </select>
+              </select>
+            </div>
+          </div>
         </label>
 
         {link.element.type === 'PowerLawOrifice' && (
@@ -315,27 +319,29 @@ function LinkProperties() {
 
       {/* Schedule binding */}
       {['Fan', 'Damper', 'Filter', 'SelfRegulatingVent'].includes(link.element.type) && (
-        <div className="border-t border-border pt-2 mt-1">
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">绑定排程</span>
-            <select
-              value={link.scheduleId ?? -1}
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                updateLink(link.id, { scheduleId: val === -1 ? undefined : val });
-              }}
-              className="px-2 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-ring bg-background"
-            >
-              <option value={-1}>无排程（常开）</option>
-              {useAppStore.getState().schedules.map((sch) => (
-                <option key={sch.id} value={sch.id}>{sch.name}</option>
-              ))}
-            </select>
-          </label>
+        <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 mt-1">
+          <div className="grid grid-cols-3 gap-x-3 items-center">
+            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 tracking-wider text-right">绑定排程</span>
+            <div className="col-span-2">
+              <select
+                value={link.scheduleId ?? -1}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  updateLink(link.id, { scheduleId: val === -1 ? undefined : val });
+                }}
+                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-slate-800 transition-colors"
+              >
+                <option value={-1}>无排程（常开）</option>
+                {useAppStore.getState().schedules.map((sch) => (
+                  <option key={sch.id} value={sch.id}>{sch.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="mt-1 px-2 py-1.5 bg-muted rounded text-[10px] text-muted-foreground">
+      <div className="mt-1 px-2.5 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-[10px] text-slate-400 dark:text-slate-500">
         ID: {link.id}
       </div>
     </div>
@@ -347,7 +353,7 @@ function AmbientSettings() {
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-sm font-bold text-foreground">室外环境条件</span>
+      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">室外环境条件</span>
       <InputField
         label="温度" value={+(ambientTemperature - 273.15).toFixed(1)} unit="°C" type="number" step="0.1"
         onChange={(v) => setAmbient({ ambientTemperature: (parseFloat(v) || 10) + 273.15 })}
@@ -394,74 +400,100 @@ export default function PropertyPanel() {
   const hasSelection = hasOldSelection || hasCanvasSelection;
 
   return (
-    <aside className="bg-card flex flex-col h-full overflow-hidden">
+    <aside className="bg-slate-50/80 dark:bg-slate-900/60 flex flex-col h-full overflow-hidden">
       {hasSelection ? (
         <div className="flex flex-col h-full">
-          <div className="px-4 py-3 border-b border-border shrink-0">
-            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">属性</h2>
+          <div className="px-5 py-3.5 shrink-0">
+            <h2 className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">属性</h2>
           </div>
-          <div className="px-4 py-3 flex-1 overflow-y-auto">
-            {selectedPlacementId !== null ? <PlacementProperties /> :
-             selectedFaceId !== null ? <ZoneProperties /> :
-             selectedEdgeId !== null ? <EdgeProperties /> :
-             selectedNodeId !== null ? <NodeProperties /> :
-             <LinkProperties />}
+          <div className="px-5 pb-4 flex-1 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+              {selectedPlacementId !== null ? <PlacementProperties /> :
+               selectedFaceId !== null ? <ZoneProperties /> :
+               selectedEdgeId !== null ? <EdgeProperties /> :
+               selectedNodeId !== null ? <NodeProperties /> :
+               <LinkProperties />}
+            </div>
           </div>
         </div>
       ) : (
         <Tabs defaultValue="model" className="flex flex-col h-full">
-          <div className="border-b border-border shrink-0">
+          <div className="shrink-0 mx-4 mt-4 mb-3">
             <div
               ref={tabsScrollRef}
               className="overflow-x-auto overflow-y-hidden scrollbar-hide"
             >
-              <TabsList className="inline-flex w-max h-10 gap-0.5 p-1 bg-transparent">
-                <TabsTrigger value="model" className="shrink-0 text-xs px-3 py-1.5 rounded-md">模型</TabsTrigger>
-                <TabsTrigger value="contam" className="shrink-0 text-xs px-3 py-1.5 rounded-md">污染物</TabsTrigger>
-                <TabsTrigger value="schedule" className="shrink-0 text-xs px-3 py-1.5 rounded-md">排程</TabsTrigger>
-                <TabsTrigger value="control" className="shrink-0 text-xs px-3 py-1.5 rounded-md">控制</TabsTrigger>
-                <TabsTrigger value="occupant" className="shrink-0 text-xs px-3 py-1.5 rounded-md">人员</TabsTrigger>
-                <TabsTrigger value="weather" className="shrink-0 text-xs px-3 py-1.5 rounded-md">气象</TabsTrigger>
-                <TabsTrigger value="ahs" className="shrink-0 text-xs px-3 py-1.5 rounded-md">空调</TabsTrigger>
-                <TabsTrigger value="filter" className="shrink-0 text-xs px-3 py-1.5 rounded-md">过滤器</TabsTrigger>
-                <TabsTrigger value="library" className="shrink-0 text-xs px-3 py-1.5 rounded-md">库管理</TabsTrigger>
+              <TabsList className="inline-flex w-max gap-1 p-1.5 bg-slate-200/60 dark:bg-slate-800/60 rounded-2xl">
+                <TabsTrigger value="model" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">模型</TabsTrigger>
+                <TabsTrigger value="contam" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">污染物</TabsTrigger>
+                <TabsTrigger value="schedule" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">排程</TabsTrigger>
+                <TabsTrigger value="control" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">控制</TabsTrigger>
+                <TabsTrigger value="occupant" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">人员</TabsTrigger>
+                <TabsTrigger value="weather" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">气象</TabsTrigger>
+                <TabsTrigger value="ahs" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">空调</TabsTrigger>
+                <TabsTrigger value="filter" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">过滤器</TabsTrigger>
+                <TabsTrigger value="library" className="shrink-0 text-xs px-3.5 py-1.5 rounded-xl">库管理</TabsTrigger>
               </TabsList>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 py-3">
+          <div className="flex-1 overflow-y-auto px-5 pb-4">
             <TabsContent value="model" className="mt-0">
-              <div className="flex flex-col gap-4">
-                <StoryProperties />
-                <div className="border-t border-border" />
-                <AmbientSettings />
-                <div className="border-t border-border" />
-                <ModelSummary />
+              <div className="flex flex-col gap-3">
+                <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                  <StoryProperties />
+                </div>
+                <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                  <AmbientSettings />
+                </div>
+                <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                  <ModelSummary />
+                </div>
               </div>
             </TabsContent>
             <TabsContent value="contam" className="mt-0">
-              <ContaminantPanel />
+              <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                <ContaminantPanel />
+              </div>
             </TabsContent>
             <TabsContent value="schedule" className="mt-0">
-              <ScheduleEditor />
-              <ScheduleGantt />
+              <div className="flex flex-col gap-3">
+                <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                  <ScheduleEditor />
+                </div>
+                <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                  <ScheduleGantt />
+                </div>
+              </div>
             </TabsContent>
             <TabsContent value="control" className="mt-0">
-              <ControlPanel />
+              <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                <ControlPanel />
+              </div>
             </TabsContent>
             <TabsContent value="occupant" className="mt-0">
-              <OccupantPanel />
+              <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                <OccupantPanel />
+              </div>
             </TabsContent>
             <TabsContent value="weather" className="mt-0">
-              <WeatherPanel />
+              <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                <WeatherPanel />
+              </div>
             </TabsContent>
             <TabsContent value="ahs" className="mt-0">
-              <AHSPanel />
+              <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                <AHSPanel />
+              </div>
             </TabsContent>
             <TabsContent value="filter" className="mt-0">
-              <FilterPanel />
+              <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                <FilterPanel />
+              </div>
             </TabsContent>
             <TabsContent value="library" className="mt-0">
-              <LibraryManager />
+              <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm p-5">
+                <LibraryManager />
+              </div>
             </TabsContent>
           </div>
         </Tabs>

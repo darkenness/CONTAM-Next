@@ -1,4 +1,4 @@
-# CONTAM-Next
+# AirSim Studio
 
 多区域室内空气质量与通风仿真软件 — NIST CONTAM 的现代重构版本。
 
@@ -70,7 +70,7 @@ npx tauri dev        # Full Tauri desktop app (calls real engine)
 ## Project Structure
 
 ```
-contam-next/
+airsim-studio/
 ├── engine/                 # C++17 calculation engine
 │   ├── src/core/           # Node, Link, Network, Solver, ContaminantSolver, TransientSimulation
 │   ├── src/elements/       # 13 flow elements (PowerLaw, Fan, Duct, TwoWayFlow, Damper, Filter, CheckValve, SelfRegVent, ...)

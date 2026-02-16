@@ -18,7 +18,7 @@ def main():
         page.on("pageerror", lambda err: page_errors.append(str(err)))
 
         print("=" * 60)
-        print("CONTAM-Next Systematic Bug Hunt")
+        print("AirSim Studio Systematic Bug Hunt")
         print("=" * 60)
 
         # ── Layer 1: App loads ──
@@ -35,7 +35,7 @@ def main():
 
         # ── Layer 2: WelcomePage ──
         print("\n[Layer 2] WelcomePage...")
-        title = page.locator("text=CONTAM-Next").count()
+        title = page.locator("text=AirSim Studio").count()
         btns = ["新建项目", "空白画布", "示例模型", "打开文件"]
         missing_btns = [b for b in btns if page.locator(f"text={b}").count() == 0]
         print(f"  Title found: {title > 0}")

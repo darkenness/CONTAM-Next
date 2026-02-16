@@ -67,7 +67,7 @@ export default function WelcomePage({ onStart }: WelcomePageProps) {
             </svg>
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">CONTAM-Next</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">AirSim Studio</h1>
             <p className="text-sm text-muted-foreground mt-1">多区域气流与污染物传输仿真</p>
             <span className="inline-block mt-2 px-2.5 py-1 text-[10px] font-data text-primary bg-primary/10 rounded-full border border-primary/20">v2.0 · 2D</span>
           </div>

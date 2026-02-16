@@ -1,4 +1,4 @@
-# CONTAM-Next 用户手册
+# AirSim Studio 用户手册
 
 > 版本 2.5D | 2026-02-16 | Phase 14R + 文档同步更新
 
@@ -31,7 +31,7 @@
 
 ## 1. 概述
 
-CONTAM-Next 是 NIST CONTAM 多区域气流与污染物传输仿真软件的现代重构版本。
+AirSim Studio 是 NIST CONTAM 多区域气流与污染物传输仿真软件的现代重构版本。
 
 **技术栈**：C++17 计算引擎 + Tauri 2.0 桌面框架 + React 19 + TypeScript 5.9
 
@@ -61,7 +61,7 @@ CONTAM-Next 是 NIST CONTAM 多区域气流与污染物传输仿真软件的现�
 ### 2.1 引擎编译（C++17）
 
 ```bash
-cd contam-next/engine
+cd airsim-studio/engine
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release
@@ -72,7 +72,7 @@ cmake --build . --config Release
 ### 2.2 前端开发
 
 ```bash
-cd contam-next/app
+cd airsim-studio/app
 npm install
 npm run dev          # Vite 开发服务器（浏览器模式）
 npm run tauri dev    # Tauri 桌面窗口（完整功能）
@@ -81,7 +81,7 @@ npm run tauri dev    # Tauri 桌面窗口（完整功能）
 ### 2.3 Python API
 
 ```bash
-cd contam-next/python
+cd airsim-studio/python
 pip install pybind11
 python setup.py build_ext --inplace
 ```
@@ -92,7 +92,7 @@ python setup.py build_ext --inplace
 
 ## 3. 界面总览
 
-CONTAM-Next 采用浮动面板布局，所有 UI 元素悬浮在全屏画布之上。
+AirSim Studio 采用浮动面板布局，所有 UI 元素悬浮在全屏画布之上。
 
 ### 3.1 布局结构
 

@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "CONTAM-Next Topology Input",
-    "description": "JSON schema for CONTAM-Next building topology and airflow network definition (v2.0)",
+    "title": "AirSim Studio Topology Input",
+    "description": "JSON schema for AirSim Studio building topology and airflow network definition (v2.0)",
     "type": "object",
     "properties": {
         "description": { "type": "string" },

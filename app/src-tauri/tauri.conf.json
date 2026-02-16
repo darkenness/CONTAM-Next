@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "CONTAM-Next",
+  "productName": "AirSim Studio",
   "version": "1.0.0",
-  "identifier": "com.contam-next.app",
+  "identifier": "com.airsim-studio.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "CONTAM-Next — 多区域室内空气质量仿真",
+        "title": "AirSim Studio — 多区域室内空气质量仿真",
         "width": 1400,
         "height": 900,
         "resizable": true,

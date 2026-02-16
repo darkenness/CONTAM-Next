@@ -1,6 +1,6 @@
-# Doxyfile for CONTAM-Next C++ Engine API Documentation
+# Doxyfile for AirSim Studio C++ Engine API Documentation
 
-PROJECT_NAME           = "CONTAM-Next Engine"
+PROJECT_NAME           = "AirSim Studio Engine"
 PROJECT_NUMBER         = "1.0.0"
 PROJECT_BRIEF          = "多区域室内空气质量与通风仿真引擎"
 OUTPUT_DIRECTORY       = docs/api

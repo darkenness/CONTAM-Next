@@ -178,7 +178,7 @@ export const useAppStore = create<AppState>()(temporal((set, get) => ({
     const ambTemp = ambientNodes.length > 0 ? ambientNodes[0].temperature : state.ambientTemperature;
 
     return {
-      description: 'CONTAM-Next model',
+      description: 'AirSim Studio model',
       ambient: {
         temperature: ambTemp,
         pressure: state.ambientPressure,

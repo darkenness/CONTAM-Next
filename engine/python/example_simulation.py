@@ -1,5 +1,5 @@
 """
-CONTAM-Next Python API Example
+AirSim Studio Python API Example
 ===============================
 Demonstrates building a multi-zone model, solving airflow,
 and analyzing results using the pycontam Python bindings.

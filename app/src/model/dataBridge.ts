@@ -267,7 +267,7 @@ export function canvasToTopology(): TopologyJson {
 
   // Build final topology JSON, merging with existing contaminant/control data
   const topology: TopologyJson = {
-    description: 'CONTAM-Next 2D model',
+    description: 'AirSim Studio 2D model',
     ambient: {
       temperature: appState.ambientTemperature,
       pressure: appState.ambientPressure,

@@ -1,5 +1,5 @@
 """
-CONTAM-Next HDF5 Export Utility
+AirSim Studio HDF5 Export Utility
 ================================
 Converts JSON simulation results to HDF5 format using h5py.
 Works with both steady-state and transient results.
@@ -122,7 +122,7 @@ def export_json_to_hdf5(json_path: str, hdf5_path: str):
         data = json.load(f)
 
     with h5py.File(hdf5_path, "w") as h5f:
-        h5f.attrs["generator"] = "CONTAM-Next v0.1.0"
+        h5f.attrs["generator"] = "AirSim Studio v0.1.0"
         h5f.attrs["source_file"] = os.path.basename(json_path)
 
         if "timeSeries" in data:

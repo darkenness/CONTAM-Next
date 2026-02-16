@@ -10,7 +10,7 @@
 #include <string>
 
 void printUsage(const char* progName) {
-    std::cout << "CONTAM-Next Engine v0.2.0\n"
+    std::cout << "AirSim Studio Engine v0.2.0\n"
               << "Usage: " << progName << " -i <input.json> -o <output.json> [options]\n"
               << "\nOptions:\n"
               << "  -i <file>    Input JSON file (required)\n"

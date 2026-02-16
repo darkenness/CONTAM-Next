@@ -33,7 +33,7 @@ namespace py = pybind11;
 using namespace contam;
 
 PYBIND11_MODULE(pycontam, m) {
-    m.doc() = "CONTAM-Next: Multi-zone airflow and contaminant transport simulation";
+    m.doc() = "AirSim Studio: Multi-zone airflow and contaminant transport simulation";
 
     // ── NodeType ─────────────────────────────────────────────────────
     py::enum_<NodeType>(m, "NodeType")

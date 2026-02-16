@@ -1,4 +1,4 @@
-# CONTAM-Next — 开发指南
+# AirSim Studio — 开发指南
 
 ## 项目概述
 
@@ -20,7 +20,7 @@
 ## 项目结构
 
 ```
-contam-next/
+airsim-studio/
 ├── engine/                 # C++17 计算引擎
 │   ├── src/core/           # 19 个核心模块: Node, Link, Network, Solver, ContaminantSolver, TransientSimulation, Species, Schedule, WeekSchedule, ChemicalKinetics, AerosolDeposition, AxleyBLD, SuperFilter, SimpleAHS, Occupant, OneDZone, DuctNetwork, AdaptiveIntegrator, PcgSolver
 │   ├── src/elements/       # 16 种气流元件 (PowerLaw, Fan, Duct, Damper, Filter, TwoWayFlow, CheckValve, SelfRegVent, QuadraticElement, BackdraftDamper, SupplyDiffuser, ReturnGrille, ...)

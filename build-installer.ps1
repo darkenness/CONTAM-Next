@@ -1,5 +1,5 @@
-# CONTAM-Next Windows Installer Build Script
-# 生成类似 CONTAM-3.4.0.8-Win32-setup.exe 的安装包
+# AirSim Studio Windows Installer Build Script
+# 生成 Windows 安装包
 #
 # 前提条件:
 #   1. Visual Studio 2019+ (C++ workload)
@@ -11,7 +11,7 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== CONTAM-Next Installer Builder ===" -ForegroundColor Cyan
+Write-Host "=== AirSim Studio Installer Builder ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Step 1: Build C++ Engine
@@ -57,5 +57,5 @@ Pop-Location
 Write-Host ""
 Write-Host "=== Build Complete ===" -ForegroundColor Green
 Write-Host "Installers are in: app/src-tauri/target/release/bundle/"
-Write-Host "  NSIS: app/src-tauri/target/release/bundle/nsis/CONTAM-Next_1.0.0_x64-setup.exe"
-Write-Host "  MSI:  app/src-tauri/target/release/bundle/msi/CONTAM-Next_1.0.0_x64_en-US.msi"
+Write-Host "  NSIS: app/src-tauri/target/release/bundle/nsis/AirSim Studio_1.0.0_x64-setup.exe"
+Write-Host "  MSI:  app/src-tauri/target/release/bundle/msi/AirSim Studio_1.0.0_x64_en-US.msi"

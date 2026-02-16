@@ -1,4 +1,4 @@
-name: CONTAM-Next CI
+name: AirSim Studio CI
 
 on:
   push:
@@ -114,7 +114,7 @@ jobs:
       - name: Upload macOS App
         uses: actions/upload-artifact@v4
         with:
-          name: CONTAM-Next-macOS
+          name: AirSim-Studio-macOS
           path: |
             app/src-tauri/target/release/bundle/dmg/*.dmg
             app/src-tauri/target/release/bundle/macos/**
@@ -159,7 +159,7 @@ jobs:
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
-          name: CONTAM-Next-Windows
+          name: AirSim-Studio-Windows
           path: app/src-tauri/target/release/bundle/**/*
           if-no-files-found: warn
           retention-days: 30

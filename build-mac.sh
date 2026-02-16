@@ -1,6 +1,6 @@
 #!/bin/bash
-# CONTAM-Next macOS Build Script
-# 生成 macOS 版本的 CONTAM-Next (.app 或 .dmg)
+# AirSim Studio macOS Build Script
+# 生成 macOS 版本的 AirSim Studio (.app 或 .dmg)
 #
 # 前提条件:
 #   1. Xcode Command Line Tools: xcode-select --install
@@ -12,7 +12,7 @@
 
 set -e
 
-echo "=== CONTAM-Next macOS Builder ==="
+echo "=== AirSim Studio macOS Builder ==="
 echo ""
 
 # Detect architecture
@@ -63,5 +63,5 @@ cd ..
 
 echo ""
 echo "=== Build Complete ==="
-echo "App bundle: app/src-tauri/target/release/bundle/macos/CONTAM-Next.app"
-echo "DMG:        app/src-tauri/target/release/bundle/dmg/CONTAM-Next_1.0.0_${ARCH}.dmg"
+echo "App bundle: app/src-tauri/target/release/bundle/macos/AirSim Studio.app"
+echo "DMG:        app/src-tauri/target/release/bundle/dmg/AirSim Studio_1.0.0_${ARCH}.dmg"

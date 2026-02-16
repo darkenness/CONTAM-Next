@@ -184,8 +184,8 @@ export default function TopBar() {
           </svg>
         </div>
         <div className="flex flex-col leading-none">
-          <span className="font-bold text-foreground text-sm tracking-tight">CONTAM</span>
-          <span className="text-muted-foreground text-[10px] font-medium">Next · 2D</span>
+          <span className="font-bold text-foreground text-sm tracking-tight">AirSim</span>
+          <span className="text-muted-foreground text-[10px] font-medium">Studio · 2D</span>
         </div>
       </div>
 

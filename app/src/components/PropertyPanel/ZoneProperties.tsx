@@ -338,7 +338,7 @@ export function PlacementProperties() {
         type="number"
         step="0.1"
         onChange={(v) => updatePlacement(selectedPlacementId, {
-          relativeElevation: parseFloat(v) || 0,
+          relativeElevation: parseFloat(v) || 0, isConfigured: true,
         })}
       />
 
@@ -348,7 +348,7 @@ export function PlacementProperties() {
         type="number"
         step="1"
         onChange={(v) => updatePlacement(selectedPlacementId, {
-          multiplier: Math.max(1, parseInt(v) || 1),
+          multiplier: Math.max(1, parseInt(v) || 1), isConfigured: true,
         })}
       />
 

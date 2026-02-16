@@ -223,6 +223,9 @@ double AdaptiveIntegrator::step(double t, double dtTarget, std::vector<double>& 
                 continue;
             }
 
+            // Use the more accurate two-half-step result
+            ySolution = yDouble;
+
             suggestedDt_ = computeNewDt(dt, error, order);
         }
 

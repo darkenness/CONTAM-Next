@@ -7,6 +7,11 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
+
+// Skip test if validation data file is missing (not shipped in public repo)
+#define SKIP_IF_NO_FILE(path) \
+    if (!std::filesystem::exists(path)) { GTEST_SKIP() << "Validation file not found: " << path; }
 
 using namespace contam;
 
@@ -310,6 +315,7 @@ TEST(JsonReaderTest, LeakageAreaElement) {
 // Verification: airflow convergence, concentration accuracy, mass conservation
 
 TEST(ValidationCase02, Converges) {
+    SKIP_IF_NO_FILE("../../validation/case02_co2_source/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case02_co2_source/input.json");
 
     TransientSimulation sim;
@@ -328,6 +334,7 @@ TEST(ValidationCase02, Converges) {
 }
 
 TEST(ValidationCase02, AirflowAccuracy) {
+    SKIP_IF_NO_FILE("../../validation/case02_co2_source/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case02_co2_source/input.json");
 
     TransientSimulation sim;
@@ -368,6 +375,7 @@ TEST(ValidationCase02, AirflowAccuracy) {
 }
 
 TEST(ValidationCase02, ConcentrationAccuracy) {
+    SKIP_IF_NO_FILE("../../validation/case02_co2_source/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case02_co2_source/input.json");
 
     TransientSimulation sim;
@@ -407,6 +415,7 @@ TEST(ValidationCase02, ConcentrationAccuracy) {
 }
 
 TEST(ValidationCase02, MassConservation) {
+    SKIP_IF_NO_FILE("../../validation/case02_co2_source/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case02_co2_source/input.json");
 
     TransientSimulation sim;
@@ -453,6 +462,7 @@ TEST(ValidationCase02, MassConservation) {
 // Verification: fan operation, duct resistance, concentration accuracy
 
 TEST(ValidationCase03, Converges) {
+    SKIP_IF_NO_FILE("../../validation/case03_fan_duct/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case03_fan_duct/input.json");
 
     TransientSimulation sim;
@@ -471,6 +481,7 @@ TEST(ValidationCase03, Converges) {
 }
 
 TEST(ValidationCase03, AirflowAccuracy) {
+    SKIP_IF_NO_FILE("../../validation/case03_fan_duct/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case03_fan_duct/input.json");
 
     TransientSimulation sim;
@@ -520,6 +531,7 @@ TEST(ValidationCase03, AirflowAccuracy) {
 }
 
 TEST(ValidationCase03, ConcentrationAccuracy) {
+    SKIP_IF_NO_FILE("../../validation/case03_fan_duct/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case03_fan_duct/input.json");
 
     TransientSimulation sim;
@@ -556,6 +568,7 @@ TEST(ValidationCase03, ConcentrationAccuracy) {
 }
 
 TEST(ValidationCase03, MassConservation) {
+    SKIP_IF_NO_FILE("../../validation/case03_fan_duct/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case03_fan_duct/input.json");
 
     TransientSimulation sim;
@@ -602,6 +615,7 @@ TEST(ValidationCase03, MassConservation) {
 // Verification: multi-species transport, decay, complex topology
 
 TEST(ValidationCase04, Converges) {
+    SKIP_IF_NO_FILE("../../validation/case04_multizone/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case04_multizone/input.json");
 
     TransientSimulation sim;
@@ -620,6 +634,7 @@ TEST(ValidationCase04, Converges) {
 }
 
 TEST(ValidationCase04, AirflowAccuracy) {
+    SKIP_IF_NO_FILE("../../validation/case04_multizone/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case04_multizone/input.json");
 
     TransientSimulation sim;
@@ -675,6 +690,7 @@ TEST(ValidationCase04, AirflowAccuracy) {
 }
 
 TEST(ValidationCase04, ConcentrationAccuracy) {
+    SKIP_IF_NO_FILE("../../validation/case04_multizone/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case04_multizone/input.json");
 
     TransientSimulation sim;
@@ -716,6 +732,7 @@ TEST(ValidationCase04, ConcentrationAccuracy) {
 }
 
 TEST(ValidationCase04, MassConservation) {
+    SKIP_IF_NO_FILE("../../validation/case04_multizone/input.json");
     auto model = JsonReader::readModelFromFile("../../validation/case04_multizone/input.json");
 
     TransientSimulation sim;
